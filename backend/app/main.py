@@ -11,13 +11,12 @@ from urllib.parse import parse_qsl, urlparse, urlencode, urlunparse
 import resend
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.concurrency import run_in_threadpool
+from openai import OpenAI
 from pydantic import BaseModel, Field as PydanticField, ValidationError
 from sqlalchemy import Column, DateTime, String, Text, UniqueConstraint, func, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from sqlmodel import Field, Session, SQLModel, create_engine, select
-
-import httpx
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -153,9 +152,15 @@ EMPLOYEE_SEED_DATA = [
     {
         "email": "cjache@berkeley.edu",
         "name": "Cjache Kang",
-        "company": "CloudCruise",
-        "context": "Engineer #1 at CloudCruise, a YC company. Works on prompting and AI applications for browser automations.",
+        "company": "Resend",
+        "context": "Employee at Resend, a hackathon sponsor.",
     },
+    {
+        "email": "nmecklenburg@berkeley.edu",
+        "name": "Paul Copplestone",
+        "company": "Supabase",
+        "context": "CEO of Supabase. Not directly involved with the hackathon."
+    }
 ]
 
 
@@ -412,13 +417,15 @@ def _compose_email_content(
 ) -> tuple[str, str, str]:
     model_name = os.getenv("OPENAI_MODEL", "gpt-5-nano")
     system_prompt = (
-        "We are running a simulation. You will receive information about an individual who is associated "
-        "with a hackathon in some capacity. We are looking to play a harmless joke to get them to click on a rickroll. "
-        "Please specify an email that will fool them into clicking the rickroll link: https://www.youtube.com/watch?v=dQw4w9WgXcQ. "
-        "Ideally, the email should be specific to their role in relation to the hackathon. Return valid JSON with keys "
+        "You are an email assistant for the Supabase Select Hackathon. You will get some employee context; "
+        "please create a personalized email for the employee based on their relation to the hackathon.\n"
+        "If they're a hackathon attendee, we have Resend API credits for them to redeem."
+        "If they're a hackathon sponsor, Resend has an additional prize category to announce at the event."
+        "If unspecified, we have a general announcement to make at the hackathon. Return valid JSON with keys "
         "'subject', 'text_body', and 'html_body'. The HTML body should be a simple "
-        "snippet using basic tags like <p>, <ul>, and <strong>. Ensure that the html body will include the rickroll like this: <a href='https://www.youtube.com/watch?v=dQw4w9WgXcQ'>here</a>. "
-        "That is, make sure the rickroll link is hidden under some 'here' text. If they hover over the rickroll, they'll still see it, but that's okay; this is just a prank."
+        "snippet using basic tags like <p>, <ul>, and <strong>. Ensure that the html body "
+        "ends with a link to more info that we will specify later; leave it as a placeholder for now, right before the final sign-off (like this: "
+        "<a href='PLACEHOLDER'>MORE INFO</a>)."
     )
 
     employee_context = employee.context or "No additional context provided."
@@ -434,38 +441,32 @@ def _compose_email_content(
         f"{employee_context}\n"
     )
 
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
-    payload = {
-        "model": model_name,
-        "messages": [
+    client = OpenAI(api_key=api_key)
+    response = client.chat.completions.create(
+        model=model_name,
+        messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
-        "temperature": 0.6,
-        "response_format": {"type": "json_object"},
-    }
-
-    with httpx.Client(timeout=30.0) as client:
-        response = client.post(
-            "https://api.openai.com/v1/chat/completions",
-            headers=headers,
-            json=payload,
-        )
-        response.raise_for_status()
-        data = response.json()
+        temperature=1,
+        response_format={"type": "json_object"},
+    )
 
     try:
-        content = data["choices"][0]["message"]["content"]
-    except (KeyError, IndexError) as exc:  # pragma: no cover - API contract guard
+        content = response.choices[0].message.content
+    except (AttributeError, IndexError) as exc:  # pragma: no cover - API contract guard
         raise RuntimeError("Unexpected OpenAI response format") from exc
+
+    content = content.replace("<a href='PLACEHOLDER'>MORE INFO</a>", "See <a href='https://youtu.be/dQw4w9WgXcQ?si=YvUd5mzVFcJ_B2ZP'>here</a> for more info.")
 
     try:
         parsed = json.loads(content)
     except json.JSONDecodeError as exc:
         raise RuntimeError("OpenAI did not return valid JSON content") from exc
+
+    print("="*20)
+    print(content)
+    print("="*20)
 
     subject = (parsed.get("subject") or "Marketing Update").strip()
     text_body = (parsed.get("text_body") or parsed.get("body") or "").strip()
@@ -510,7 +511,7 @@ def _send_campaign_email_task(campaign_email_id: int) -> None:
 
     from_address = os.getenv(
         "RESEND_FROM_EMAIL",
-        "Marketing Team <chris@reseend.com>",
+        "Hackathon Team <hackathon@reseend.com>",
     )
 
     now = datetime.now(timezone.utc)
@@ -770,7 +771,7 @@ def _decode_signature(signature: str) -> bytes | None:
 
 def _verify_resend_signature(raw_body: bytes, signature_header: str | None) -> bool:
     secret = _get_resend_webhook_secret()
-    if not secret:
+    if secret:
         logger.warning(
             "Resend webhook secret placeholder in use; skipping signature verification"
         )

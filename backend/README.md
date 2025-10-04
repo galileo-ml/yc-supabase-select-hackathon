@@ -3,6 +3,9 @@
 ## Prerequisites
 - Python 3.11+ available on PATH (via Conda, pyenv, or system Python)
 - [`uv`](https://github.com/astral-sh/uv#installation) installed for dependency and virtualenv management
+- Resend API key (`RESEND_API_KEY`)
+- Supabase project URL and service role key (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`)
+- Supabase Postgres connection string with DDL rights (`SUPABASE_DB_URL`)
 
 ## Setup
 ```bash
@@ -32,4 +35,4 @@ uv run pytest
 Add tests under `app/tests/` to keep coverage alongside the code.
 
 ## Project Status
-This service currently exposes only the default health route. Expand within the `app/` package and update `pyproject.toml` when adding new modules.
+The service currently exposes a health endpoint, the Resend test email route, and Supabase seeding. Expand within the `app/` package and update `pyproject.toml` when adding new modules.

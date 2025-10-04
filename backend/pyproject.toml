@@ -7,6 +7,9 @@ authors = [{ name = "YC Supabase Hackathon Team" }]
 requires-python = ">=3.11"
 dependencies = [
     "fastapi",
+    "resend",
+    "supabase",
+    "psycopg[binary]",
     "uvicorn[standard]"
 ]
 

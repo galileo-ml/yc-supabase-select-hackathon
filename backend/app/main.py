@@ -82,6 +82,18 @@ class CreateCampaignRequest(BaseModel):
     num_users: int = PydanticField(gt=0, description="Number of employees to include")
 
 
+def _ensure_row_level_security(engine: Engine, table_names: Iterable[str]) -> None:
+    tables = list(table_names)
+    try:
+        with engine.begin() as connection:
+            for table_name in tables:
+                connection.execute(
+                    text(f'ALTER TABLE IF EXISTS "{table_name}" ENABLE ROW LEVEL SECURITY')
+                )
+    except SQLAlchemyError as exc:  # pragma: no cover - database safeguard
+        logger.warning("Unable to enable RLS for %s: %s", ", ".join(tables), exc)
+
+
 def _normalize_connection_url(raw_url: str) -> str:
     parsed = urlparse(raw_url)
     parts = list(parsed)
@@ -148,6 +160,10 @@ def ensure_tables_and_seed() -> None:
             engine,
             tables=[Employee.__table__, Campaign.__table__, CampaignMember.__table__],
         )
+        _ensure_row_level_security(
+            engine,
+            (Employee.__tablename__, Campaign.__tablename__, CampaignMember.__tablename__),
+        )
 
         with Session(engine) as session:
             existing = session.exec(select(Employee).limit(1)).first()
@@ -206,8 +222,19 @@ def _create_campaign_record(num_users: int) -> tuple[Campaign, list[Employee]]:
         return campaign, employees
 
 
+def _enqueue_campaign_email_stub(campaign_id: int, employee_payload: dict[str, Any]) -> None:
+    email = employee_payload.get("email")
+    logger.info(
+        "Stub: enqueue marketing email for campaign %s to %s",
+        campaign_id,
+        email or "<unknown>",
+    )
+
+
 @app.post("/campaigns", status_code=201)
-async def create_campaign(payload: CreateCampaignRequest):
+async def create_campaign(
+    payload: CreateCampaignRequest, background_tasks: BackgroundTasks
+):
     campaign, employees = await run_in_threadpool(
         _create_campaign_record, payload.num_users
     )
@@ -218,16 +245,21 @@ async def create_campaign(payload: CreateCampaignRequest):
         "created_at": campaign.created_at.isoformat() if campaign.created_at else None,
     }
 
-    members_payload = [
-        {
+    members_payload = []
+    for employee in employees:
+        employee_payload = {
             "id": employee.id,
             "email": employee.email,
             "name": employee.name,
             "company": employee.company,
             "context": employee.context,
         }
-        for employee in employees
-    ]
+        members_payload.append(employee_payload)
+        background_tasks.add_task(
+            _enqueue_campaign_email_stub,
+            campaign.id,
+            employee_payload,
+        )
 
     return {"campaign": campaign_payload, "members": members_payload}
 
@@ -298,6 +330,8 @@ def _collect_resend_statuses(
             email_id = email.get("id")
             status = (email.get("status") or "").lower()
             sent_at = email.get("created_at") or email.get("sent_at")
+            html_body = email.get("html")
+            text_body = email.get("text")
             email_payload: dict[str, Any] = {
                 "id": email_id,
                 "subject": email.get("subject"),
@@ -305,6 +339,8 @@ def _collect_resend_statuses(
                 "sent": status in {"sent", "delivered", "opened", "clicked"},
                 "clicked": False,
                 "sent_at": sent_at,
+                "body_html": html_body,
+                "body_text": text_body,
             }
 
             if email_id:
@@ -326,6 +362,18 @@ def _collect_resend_statuses(
                             and event.get("created_at")
                         ):
                             email_payload["sent_at"] = event["created_at"]
+
+                if html_body is None and text_body is None:
+                    try:
+                        detail = resend.Emails.get(email_id)
+                    except Exception as exc:  # pragma: no cover - external API protection
+                        logger.warning(
+                            "Unable to load Resend email %s details: %s", email_id, exc
+                        )
+                    else:
+                        if isinstance(detail, dict):
+                            email_payload["body_html"] = detail.get("html")
+                            email_payload["body_text"] = detail.get("text")
 
             status_lookup[address].append(email_payload)
 

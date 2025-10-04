@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Building2, Target, Users, X } from "lucide-react"
 
@@ -44,6 +44,17 @@ export function CampaignModal({ open, onOpenChange, onSubmit }: CampaignModalPro
   const [businessFunction, setBusinessFunction] = useState("")
   const [targetCount, setTargetCount] = useState(DEFAULT_TARGET_COUNT)
 
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && open) {
+        handleClose()
+      }
+    }
+
+    document.addEventListener("keydown", handleEscape)
+    return () => document.removeEventListener("keydown", handleEscape)
+  }, [open])
+
   if (!open) {
     return null
   }
@@ -68,9 +79,18 @@ export function CampaignModal({ open, onOpenChange, onSubmit }: CampaignModalPro
     onOpenChange(false)
   }
 
+  const handleBackdropClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (event.target === event.currentTarget) {
+      handleClose()
+    }
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-      <div className="w-full max-w-xl overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+      onClick={handleBackdropClick}
+    >
+      <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-card shadow-2xl scrollbar-hide">
         <div className="flex items-start justify-between border-b border-border px-6 py-5">
           <div>
             <h2 className="font-sans text-xl font-semibold text-foreground">Create New Campaign</h2>

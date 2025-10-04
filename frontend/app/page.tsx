@@ -7,9 +7,9 @@ import { EmailGenerationAnimation } from "@/components/email-generation-animatio
 import { EmailSendingAnimation } from "@/components/email-sending-animation"
 import { CampaignDashboard } from "@/components/campaign-dashboard"
 
-const SEARCH_DURATION_MS = 3000
-const GENERATION_DURATION_MS = 7000
-const SENDING_DURATION_MS = 8000
+const SEARCH_DURATION_MS = 6000
+const GENERATION_DURATION_MS = 6000
+const SENDING_DURATION_MS = 6000
 
 type Campaign = {
   id: string

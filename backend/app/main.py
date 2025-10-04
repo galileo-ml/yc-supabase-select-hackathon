@@ -40,7 +40,7 @@ class Employee(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     email: str = Field(
-        sa_column=Column("email", String, unique=True, nullable=False, index=True)
+        sa_column=Column("email", String, nullable=False, index=True)
     )
     name: str
     company: str
@@ -143,23 +143,117 @@ class CampaignEmail(SQLModel, table=True):
 
 
 EMPLOYEE_SEED_DATA = [
+    # {
+    #     "email": "nickcar712@gmail.com",  # paul@supabase.com
+    #     "name": "Paul Copplestone",
+    #     "company": "Supabase",
+    #     "context": "Not directly involved with the hackathon.",
+    # },
+    # {
+    #     "email": "nickcar712@gmail.com",  # ant@supabase.com
+    #     "name": "Ant Wilson",
+    #     "company": "Supabase",
+    #     "context": "Not directly involved with the hackathon.",
+    # },
+    # {
+    #     "email": "nickcar712@gmail.com", # zeno@resend.com
+    #     "name": "Zeno Rocha",
+    #     "company": "Resend",
+    #     "context": "Not directly involved with the hackathon."
+    # },
+    {
+        # "email": "nickcar712@gmail.com",
+        "email": "chris@resend.com",
+        "name": "Chris Pennington",
+        "company": "Resend",
+        "context": "He spoke at the hackathon from Resend's side.",
+    },
+    {
+        # "email": "nickcar712@gmail.com",
+        "email": "creighton@supabase.io",
+        "name": "Creighton Mershon",
+        "company": "Supabase",
+        "context": "Present at the hackathon; employee of supabase."
+    },
+    {
+        # "email": "nickcar712@gmail.com",
+        "email": "kang@supabase.io",
+        "name": "Kang Ming Tay",
+        "company": "Supabase",
+        "context": "Present at the hackathon; employee of supabase."
+    },
+    {
+        # "email": "nickcar712@gmail.com",
+        "email": "tylers@supabase.io",
+        "name": "Tyler Shukert",
+        "company": "Supabase",
+        "context": "Hackathon attendee; employee of supabase."
+    },
+    {
+        # "email": "nickcar712@gmail.com",
+        "email": "sean@supabase.io",
+        "name": "Sean Oliver",
+        "company": "Supabase",
+        "context": "Employee of supabase. May not be related to hackathon."
+    },
+    {
+        # "email": "nickcar712@gmail.com",
+        "email": "jessi@supabase.io",
+        "name": "Jessi Arrington",
+        "company": "Supabase",
+        "context": "Employee of supabase. Present at hackathon."
+    },
+    {
+        # "email": "nickcar712@gmail.com",
+        "email": "agrancini@snapchat.com",
+        "name": "Alessio Grancini",
+        "company": "Snap",
+        "context": "Spoke at the hackathon from Snap's side."
+    },
+    {
+        # "email": "nickcar712@gmail.com",
+        "email": "alessio.grancini@gmail.com",
+        "name": "Alessio Grancini",
+        "company": "Snap",
+        "context": "Spoke at the hackathon from Snap's side."
+    },
+    {
+        # "email": "nickcar712@gmail.com",
+        "email": "tpieper@datadoghq.com",
+        "name": "Till Pieper",
+        "company": "Datadog",
+        "context": "Spoke at the hackathon from Datadog's side."
+    },
+    {
+        # "email": "nickcar712@gmail.com",
+        "email": "till.pieper@datadoghq.com",
+        "name": "Till Pieper",
+        "company": "Datadog",
+        "context": "Spoke at the hackathon from Datadog's side."
+    },
     {
         "email": "nickcar712@gmail.com",
-        "name": "Nick Mecklenburg",
-        "company": "Microsoft",
-        "context": "Tech lead at CoreAI post-training, hill-climbing on benchmarks like browsecomp, swebench-verified, etc. Participant at Supabase Select Hackathon.",
+        "name": "Nick",
+        "company": "Stanford",
+        "context": "Hackathon attendee"
     },
     {
-        "email": "cjache@berkeley.edu",
-        "name": "Cjache Kang",
-        "company": "Resend",
-        "context": "Employee at Resend, a hackathon sponsor.",
+        "email": "jakecancodeyt@gmail.com",
+        "name": "Jake",
+        "company": "CloudCruise",
+        "context": "Hackathon attendee"
     },
     {
-        "email": "nmecklenburg@berkeley.edu",
-        "name": "Paul Copplestone",
-        "company": "Supabase",
-        "context": "CEO of Supabase. Not directly involved with the hackathon."
+        "email": "rvtsang@gmail.com",
+        "name": "Ryan",
+        "company": "Founder",
+        "context": "Unrelated to hackathon"
+    },
+    {
+        "email": "ankur.jain@berkeley.edu",
+        "name": "Ankur",
+        "company": "N/A",
+        "context": "Unrelated to hackathon"
     }
 ]
 
@@ -449,10 +543,11 @@ def _compose_email_content(
     model_name = os.getenv("OPENAI_MODEL", "gpt-5-nano")
     system_prompt = (
         "You are an email assistant for the Supabase Select Hackathon. You will get some employee context; "
-        "please create a personalized email for the employee based on their relation to the hackathon.\n"
-        "If they're a hackathon attendee, we have Resend API credits for them to redeem."
-        "If they're a hackathon sponsor, Resend has an additional prize category to announce at the event."
-        "If unspecified, we have a general announcement to make at the hackathon. Return valid JSON with keys "
+        "please create a personalized email for the employee based on their relation to the hackathon. Don't be too direct about using wording from the context in the email; ie if we mention they are or are not directly involved in the hackathon, use that as context but don't repeat it directly.\n"
+        "If they're a hackathon attendee, we have Resend API credits for them to redeem. "
+        "If they're a hackathon sponsor (not from Resend), Resend has an additional prize category to announce at the event (category related to resend). "
+        "If they're a hackathon sponsor (from Resend), Supabase has an additional announcement to make regarding the hackathon. "
+        "If unspecified, we have a general announcement to make at the hackathon from Resend. Return valid JSON with keys "
         "'subject', 'text_body', and 'html_body'. The HTML body should be a simple "
         "snippet using basic tags like <p>, <ul>, and <strong>. Ensure that the html body "
         "ends with a link to more info that we will specify later; leave it as a placeholder for now, right before the final sign-off (like this: "

@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { EmailDetailModal } from "@/components/email-detail-modal"
+import { maskEmail } from "@/lib/utils"
 import { Mail, AlertCircle, CheckCircle2, Circle } from "lucide-react"
 
 export type Campaign = {
@@ -170,7 +171,7 @@ export function CampaignDashboard({ campaigns }: CampaignDashboardProps) {
                     </Badge>
                   )}
                 </TableCell>
-                <TableCell className="font-mono text-sm text-foreground">{email.recipient}</TableCell>
+                <TableCell className="font-mono text-sm text-foreground">{maskEmail(email.recipient)}</TableCell>
                 <TableCell className="text-foreground">{email.subject}</TableCell>
                 <TableCell className="text-muted-foreground">{email.sentAt.toLocaleTimeString()}</TableCell>
               </TableRow>

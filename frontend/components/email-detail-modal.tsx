@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
+import { maskEmail } from "@/lib/utils"
 import { X, Mail, Clock, AlertCircle, CheckCircle2, Circle } from "lucide-react"
 
 type EmailStatus = "sent" | "delivered" | "clicked"
@@ -105,7 +106,7 @@ export function EmailDetailModal({ open, onOpenChange, email }: EmailDetailModal
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <div>
                 <p className="text-xs font-medium text-muted-foreground mb-1">Recipient</p>
-                <p className="font-mono text-sm text-foreground">{email.recipient}</p>
+                <p className="font-mono text-sm text-foreground">{maskEmail(email.recipient)}</p>
               </div>
               <div>
                 <p className="text-xs font-medium text-muted-foreground mb-1">Status</p>

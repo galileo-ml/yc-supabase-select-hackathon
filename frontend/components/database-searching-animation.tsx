@@ -67,8 +67,8 @@ export function DatabaseSearchingAnimation() {
           ))}
         </svg>
 
-        {PATHS.map(({ id, path, delay }) => {
-          const SourceIcon = iconLibrary.database
+        {PATHS.map(({ id, path, icon, delay }) => {
+          const SourceIcon = iconLibrary[icon]
           const sharedStyle = {
             offsetPath: `path('${path}')`,
             WebkitOffsetPath: `path('${path}')`,

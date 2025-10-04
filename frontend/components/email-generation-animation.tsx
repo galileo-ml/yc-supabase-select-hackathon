@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
-import { Mail, Sparkles } from "lucide-react"
+import { Mail } from "lucide-react"
 
 const EMAIL_TEMPLATES = [
   {

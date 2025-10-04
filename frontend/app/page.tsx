@@ -8,7 +8,6 @@ import { EmailSendingAnimation } from "@/components/email-sending-animation"
 import { CampaignDashboard } from "@/components/campaign-dashboard"
 import { Button } from "@/components/ui/button"
 import { Mail } from "lucide-react"
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 
 type Campaign = {
   id: string
@@ -77,72 +76,92 @@ export default function PhishingTrainerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Main Content */}
-      <main className="container mx-auto px-6 py-12">
-        {currentStep === "idle" && campaigns.length === 0 && (
-          <div className="space-y-6">
-            {/* Tab Navigation */}
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-foreground">Animation Preview</h2>
-                <Button onClick={() => setIsModalOpen(true)} size="sm" variant="outline" className="gap-2">
-                  <Mail className="h-4 w-4" />
-                  Test Full Flow
-                </Button>
+    <div className="relative min-h-screen overflow-hidden">
+      <svg className="pointer-events-none absolute h-0 w-0">
+        <defs>
+          <filter id="grainy-page">
+            <feTurbulence type="fractalNoise" baseFrequency="0.375" numOctaves="3" stitchTiles="stitch" />
+            <feColorMatrix type="saturate" values="0" />
+            <feComponentTransfer>
+              <feFuncA type="table" tableValues="0 0 1" />
+            </feComponentTransfer>
+          </filter>
+        </defs>
+      </svg>
+
+      <div className="pointer-events-none absolute inset-0 bg-[var(--page-backdrop,#f7efe1)]" />
+      <div
+        className="pointer-events-none absolute inset-0 opacity-45 mix-blend-multiply"
+        style={{ filter: "url(#grainy-page)" }}
+      />
+
+      <div className="relative z-10 min-h-screen">
+        {/* Main Content */}
+        <main className="container mx-auto px-6 py-12">
+          {currentStep === "idle" && campaigns.length === 0 && (
+            <div className="space-y-6">
+              {/* Tab Navigation */}
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-semibold text-foreground">Animation Preview</h2>
+                  <Button onClick={() => setIsModalOpen(true)} size="sm" variant="outline" className="gap-2">
+                    <Mail className="h-4 w-4" />
+                    Test Full Flow
+                  </Button>
+                </div>
+                <div className="flex gap-2 border-b border-border">
+                  <button
+                    onClick={() => setActiveTab("searching")}
+                    className={`px-4 py-2 text-sm font-medium transition-colors ${
+                      activeTab === "searching"
+                        ? "border-b-2 border-primary text-primary"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Database Searching
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("generating")}
+                    className={`px-4 py-2 text-sm font-medium transition-colors ${
+                      activeTab === "generating"
+                        ? "border-b-2 border-primary text-primary"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Email Generation
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("sending")}
+                    className={`px-4 py-2 text-sm font-medium transition-colors ${
+                      activeTab === "sending"
+                        ? "border-b-2 border-primary text-primary"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Email Sending
+                  </button>
+                </div>
               </div>
-              <div className="flex gap-2 border-b border-border">
-                <button
-                  onClick={() => setActiveTab("searching")}
-                  className={`px-4 py-2 text-sm font-medium transition-colors ${
-                    activeTab === "searching"
-                      ? "border-b-2 border-primary text-primary"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Database Searching
-                </button>
-                <button
-                  onClick={() => setActiveTab("generating")}
-                  className={`px-4 py-2 text-sm font-medium transition-colors ${
-                    activeTab === "generating"
-                      ? "border-b-2 border-primary text-primary"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Email Generation
-                </button>
-                <button
-                  onClick={() => setActiveTab("sending")}
-                  className={`px-4 py-2 text-sm font-medium transition-colors ${
-                    activeTab === "sending"
-                      ? "border-b-2 border-primary text-primary"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Email Sending
-                </button>
+
+              {/* Animation Display Area */}
+              <div className="rounded-lg border border-border bg-card">
+                {activeTab === "searching" && <DatabaseSearchingAnimation />}
+                {activeTab === "generating" && <EmailGenerationAnimation />}
+                {activeTab === "sending" && <EmailSendingAnimation />}
               </div>
             </div>
+          )}
 
-            {/* Animation Display Area */}
-            <div className="rounded-lg border border-border bg-card">
-              {activeTab === "searching" && <DatabaseSearchingAnimation />}
-              {activeTab === "generating" && <EmailGenerationAnimation />}
-              {activeTab === "sending" && <EmailSendingAnimation />}
-            </div>
-          </div>
-        )}
+          {currentStep === "searching" && <DatabaseSearchingAnimation />}
+          {currentStep === "generating" && <EmailGenerationAnimation />}
+          {currentStep === "sending" && <EmailSendingAnimation />}
+          {(currentStep === "idle" || currentStep === "complete") && campaigns.length > 0 && (
+            <CampaignDashboard campaigns={campaigns} />
+          )}
+        </main>
 
-        {currentStep === "searching" && <DatabaseSearchingAnimation />}
-        {currentStep === "generating" && <EmailGenerationAnimation />}
-        {currentStep === "sending" && <EmailSendingAnimation />}
-        {(currentStep === "idle" || currentStep === "complete") && campaigns.length > 0 && (
-          <CampaignDashboard campaigns={campaigns} />
-        )}
-      </main>
-
-      <CampaignModal open={isModalOpen} onOpenChange={setIsModalOpen} onSubmit={handleCreateCampaign} />
+        <CampaignModal open={isModalOpen} onOpenChange={setIsModalOpen} onSubmit={handleCreateCampaign} />
+      </div>
     </div>
   )
 }

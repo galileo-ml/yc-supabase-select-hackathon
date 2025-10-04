@@ -53,12 +53,18 @@ export function CampaignDashboard({ campaigns, onRefresh, onCreateNewCampaign }:
 
   const stats = {
     total: selectedCampaign.emails.length,
+    queued: selectedCampaign.emails.filter((e) => e.status === "queued").length,
+    sending: selectedCampaign.emails.filter((e) => e.status === "sending").length,
     sent: selectedCampaign.emails.filter((e) => e.status === "sent").length,
     delivered: selectedCampaign.emails.filter((e) => e.status === "delivered").length,
+    opened: selectedCampaign.emails.filter((e) => e.status === "opened").length,
     clicked: selectedCampaign.emails.filter((e) => e.status === "clicked").length,
+    bounced: selectedCampaign.emails.filter((e) => e.status === "bounced").length,
+    complained: selectedCampaign.emails.filter((e) => e.status === "complained").length,
   }
 
   const clickRate = stats.total > 0 ? ((stats.clicked / stats.total) * 100).toFixed(1) : "0.0"
+  const openRate = stats.total > 0 ? ((stats.opened / stats.total) * 100).toFixed(1) : "0.0"
 
   return (
     <div className="space-y-6">
@@ -108,7 +114,7 @@ export function CampaignDashboard({ campaigns, onRefresh, onCreateNewCampaign }:
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-5">
         <Card className="border-border bg-card p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -136,6 +142,17 @@ export function CampaignDashboard({ campaigns, onRefresh, onCreateNewCampaign }:
               <p className="mt-1 font-sans text-2xl font-semibold text-success">{stats.delivered}</p>
             </div>
             <CheckCircle2 className="h-8 w-8 text-success" />
+          </div>
+        </Card>
+
+        <Card className="border-border bg-card p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Opened</p>
+              <p className="mt-1 font-sans text-2xl font-semibold text-primary">{stats.opened}</p>
+              <p className="text-xs text-muted-foreground">{openRate}% open rate</p>
+            </div>
+            <Eye className="h-8 w-8 text-primary" />
           </div>
         </Card>
 
@@ -173,56 +190,7 @@ export function CampaignDashboard({ campaigns, onRefresh, onCreateNewCampaign }:
                 className="border-border cursor-pointer transition-colors hover:bg-muted/50"
                 onClick={() => handleRowClick(email)}
               >
-                <TableCell>
-                  {email.status === "clicked" && (
-                    <Badge variant="destructive" className="gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      Clicked
-                    </Badge>
-                  )}
-                  {email.status === "opened" && (
-                    <Badge variant="outline" className="gap-1 border-warning text-warning">
-                      <Eye className="h-3 w-3" />
-                      Opened
-                    </Badge>
-                  )}
-                  {email.status === "delivered" && (
-                    <Badge variant="outline" className="gap-1 border-success text-success">
-                      <CheckCircle2 className="h-3 w-3" />
-                      Delivered
-                    </Badge>
-                  )}
-                  {email.status === "sent" && (
-                    <Badge variant="outline" className="gap-1 border-muted-foreground text-muted-foreground">
-                      <Circle className="h-3 w-3" />
-                      Sent
-                    </Badge>
-                  )}
-                  {email.status === "sending" && (
-                    <Badge variant="outline" className="gap-1 border-primary text-primary">
-                      <Send className="h-3 w-3" />
-                      Sending
-                    </Badge>
-                  )}
-                  {email.status === "queued" && (
-                    <Badge variant="outline" className="gap-1 border-muted-foreground text-muted-foreground">
-                      <Clock className="h-3 w-3" />
-                      Queued
-                    </Badge>
-                  )}
-                  {email.status === "bounced" && (
-                    <Badge variant="outline" className="gap-1 border-destructive text-destructive">
-                      <Ban className="h-3 w-3" />
-                      Bounced
-                    </Badge>
-                  )}
-                  {email.status === "complained" && (
-                    <Badge variant="outline" className="gap-1 border-destructive text-destructive">
-                      <AlertTriangle className="h-3 w-3" />
-                      Complained
-                    </Badge>
-                  )}
-                </TableCell>
+                <TableCell>{renderStatusBadge(email.status)}</TableCell>
                 <TableCell className="font-mono text-sm text-foreground">{maskEmail(email.recipient)}</TableCell>
                 <TableCell className="text-foreground">{email.subject}</TableCell>
                 <TableCell className="text-muted-foreground">{email.sentAt.toLocaleTimeString()}</TableCell>

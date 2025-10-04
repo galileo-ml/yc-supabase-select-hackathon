@@ -107,9 +107,7 @@ export function DatabaseSearchingAnimation() {
         {FILE_PATHS.map(({ id, path, delay }) => {
           const sharedStyle: CSSProperties = {
             offsetPath: `path('${path}')`,
-            WebkitOffsetPath: `path('${path}')`,
             offsetRotate: "0deg",
-            WebkitOffsetRotate: "0deg",
             animationDelay: `${delay}s`,
           }
 
@@ -124,9 +122,7 @@ export function DatabaseSearchingAnimation() {
           const fileAsset = fileAssignments[index] ?? FILE_ASSETS[index % FILE_ASSETS.length]
           const sharedStyle: CSSProperties = {
             offsetPath: `path('${path}')`,
-            WebkitOffsetPath: `path('${path}')`,
             offsetRotate: "0deg",
-            WebkitOffsetRotate: "0deg",
             animationDelay: `${delay + 0.2}s`,
           }
 

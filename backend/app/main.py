@@ -234,19 +234,19 @@ EMPLOYEE_SEED_DATA = [
     {
         "email": "nickcar712@gmail.com",
         "name": "Nick",
-        "company": "Stanford",
+        "company": "N/A",
         "context": "Hackathon attendee"
     },
     {
         "email": "jakecancodeyt@gmail.com",
         "name": "Jake",
-        "company": "CloudCruise",
+        "company": "N/A",
         "context": "Hackathon attendee"
     },
     {
         "email": "rvtsang@gmail.com",
         "name": "Ryan",
-        "company": "Founder",
+        "company": "N/A",
         "context": "Unrelated to hackathon"
     },
     {
@@ -445,19 +445,27 @@ def _create_campaign_record(
         raise HTTPException(status_code=503, detail="Database connection is not configured")
 
     with Session(engine, expire_on_commit=False) as session:
-        employees = session.exec(
-            select(Employee).order_by(func.random()).limit(num_users)
-        ).all()
+        campaign = Campaign(num_users=num_users)
+        session.add(campaign)
+        session.flush()
+
+        if campaign.id is not None and campaign.id >= 2:
+            employees = session.exec(
+                select(Employee)
+                .where(Employee.company == "N/A")
+                .order_by(func.random())
+                .limit(num_users)
+            ).all()
+        else:
+            employees = session.exec(
+                select(Employee).order_by(func.random()).limit(num_users)
+            ).all()
 
         if len(employees) < num_users:
             raise HTTPException(
                 status_code=400,
                 detail="Not enough employees available to create campaign",
             )
-
-        campaign = Campaign(num_users=num_users)
-        session.add(campaign)
-        session.flush()
 
         memberships = [
             CampaignMember(campaign_id=campaign.id, employee_id=employee.id)

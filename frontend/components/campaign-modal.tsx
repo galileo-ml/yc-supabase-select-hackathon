@@ -15,6 +15,8 @@ interface CampaignModalProps {
     businessFunction: string
     targetCount: number
   }) => void
+  onNavigateToDashboard?: () => void
+  hasCampaigns?: boolean
 }
 
 const ORGANIZATIONS = [
@@ -38,7 +40,7 @@ const BUSINESS_FUNCTIONS = [
 
 const DEFAULT_TARGET_COUNT = "10"
 
-export function CampaignModal({ open, onOpenChange, onSubmit }: CampaignModalProps) {
+export function CampaignModal({ open, onOpenChange, onSubmit, onNavigateToDashboard, hasCampaigns }: CampaignModalProps) {
   const [name, setName] = useState("")
   const [organization, setOrganization] = useState("")
   const [businessFunction, setBusinessFunction] = useState("")
@@ -76,6 +78,9 @@ export function CampaignModal({ open, onOpenChange, onSubmit }: CampaignModalPro
   }
 
   const handleClose = () => {
+    if (hasCampaigns && onNavigateToDashboard) {
+      onNavigateToDashboard()
+    }
     onOpenChange(false)
   }
 
@@ -98,8 +103,8 @@ export function CampaignModal({ open, onOpenChange, onSubmit }: CampaignModalPro
               Configure your phishing simulation campaign parameters.
             </p>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleClose} aria-label="Close campaign modal">
-            <X className="h-4 w-4" />
+          <Button variant="outline" size="sm" onClick={handleClose}>
+            View Campaigns
           </Button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-6 px-6 py-6">

@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { EmailDetailModal } from "@/components/email-detail-modal"
 import { maskEmail } from "@/lib/utils"
-import { Mail, AlertCircle, CheckCircle2, Circle } from "lucide-react"
+import { Mail, AlertCircle, CheckCircle2, Circle, Eye, Ban, AlertTriangle, Clock, Send, RefreshCw, Plus } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export type Campaign = {
   id: string
@@ -31,15 +32,26 @@ export type Campaign = {
 
 interface CampaignDashboardProps {
   campaigns: Campaign[]
+  onRefresh: (campaignId: string) => Promise<void>
+  onCreateNewCampaign: () => void
 }
 
-export function CampaignDashboard({ campaigns }: CampaignDashboardProps) {
+export function CampaignDashboard({ campaigns, onRefresh, onCreateNewCampaign }: CampaignDashboardProps) {
   const [selectedEmail, setSelectedEmail] = useState<Campaign["emails"][0] | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>(campaigns[0]?.id || "")
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   if (!campaigns?.length) {
-    return null
+    return (
+      <div className="flex flex-col items-center justify-center space-y-4 py-12">
+        <Card className="border-border bg-card p-8 text-center">
+          <Mail className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+          <h3 className="mb-2 font-sans text-lg font-semibold text-foreground">No Campaigns Yet</h3>
+          <p className="text-sm text-muted-foreground">Create your first phishing simulation campaign to get started.</p>
+        </Card>
+      </div>
+    )
   }
 
   const selectedCampaign = campaigns.find((c) => c.id === selectedCampaignId) || campaigns[0]
@@ -49,18 +61,33 @@ export function CampaignDashboard({ campaigns }: CampaignDashboardProps) {
     setIsModalOpen(true)
   }
 
-  const stats = {
-    total: selectedCampaign.emails.length,
-    sent: selectedCampaign.emails.filter((e) => e.status === "sent").length,
-    delivered: selectedCampaign.emails.filter((e) => e.status === "delivered").length,
-    clicked: selectedCampaign.emails.filter((e) => e.status === "clicked").length,
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    try {
+      await onRefresh(selectedCampaignId)
+    } finally {
+      setIsRefreshing(false)
+    }
   }
 
-  const clickRate = ((stats.clicked / stats.total) * 100).toFixed(1)
+  const stats = {
+    total: selectedCampaign.emails.length,
+    queued: selectedCampaign.emails.filter((e) => e.status === "queued").length,
+    sending: selectedCampaign.emails.filter((e) => e.status === "sending").length,
+    sent: selectedCampaign.emails.filter((e) => e.status === "sent").length,
+    delivered: selectedCampaign.emails.filter((e) => e.status === "delivered").length,
+    opened: selectedCampaign.emails.filter((e) => e.status === "opened").length,
+    clicked: selectedCampaign.emails.filter((e) => e.status === "clicked").length,
+    bounced: selectedCampaign.emails.filter((e) => e.status === "bounced").length,
+    complained: selectedCampaign.emails.filter((e) => e.status === "complained").length,
+  }
+
+  const clickRate = stats.total > 0 ? ((stats.clicked / stats.total) * 100).toFixed(1) : "0.0"
+  const openRate = stats.total > 0 ? ((stats.opened / stats.total) * 100).toFixed(1) : "0.0"
 
   return (
     <div className="space-y-6">
-      {/* Campaign Header with Filter */}
+      {/* Campaign Header with Filter and Refresh */}
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="mb-1 font-sans text-2xl font-semibold text-foreground">{selectedCampaign.name}</h2>
@@ -69,20 +96,40 @@ export function CampaignDashboard({ campaigns }: CampaignDashboardProps) {
             {selectedCampaign.createdAt.toLocaleDateString()}
           </p>
         </div>
-        {campaigns.length > 1 && (
-          <Select value={selectedCampaignId} onValueChange={setSelectedCampaignId}>
-            <SelectTrigger className="w-[250px]">
-              <SelectValue placeholder="Select campaign" />
-            </SelectTrigger>
-            <SelectContent>
-              {campaigns.map((campaign) => (
-                <SelectItem key={campaign.id} value={campaign.id}>
-                  {campaign.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={onCreateNewCampaign}
+            size="sm"
+            className="gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            New Campaign
+          </Button>
+          <Button
+            onClick={handleRefresh}
+            variant="outline"
+            size="sm"
+            disabled={isRefreshing}
+            className="gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+          {campaigns.length > 1 && (
+            <Select value={selectedCampaignId} onValueChange={setSelectedCampaignId}>
+              <SelectTrigger className="w-[250px]">
+                <SelectValue placeholder="Select campaign" />
+              </SelectTrigger>
+              <SelectContent>
+                {campaigns.map((campaign) => (
+                  <SelectItem key={campaign.id} value={campaign.id}>
+                    {campaign.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -158,6 +205,12 @@ export function CampaignDashboard({ campaigns }: CampaignDashboardProps) {
                       Clicked
                     </Badge>
                   )}
+                  {email.status === "opened" && (
+                    <Badge variant="outline" className="gap-1 border-warning text-warning">
+                      <Eye className="h-3 w-3" />
+                      Opened
+                    </Badge>
+                  )}
                   {email.status === "delivered" && (
                     <Badge variant="outline" className="gap-1 border-success text-success">
                       <CheckCircle2 className="h-3 w-3" />
@@ -168,6 +221,30 @@ export function CampaignDashboard({ campaigns }: CampaignDashboardProps) {
                     <Badge variant="outline" className="gap-1 border-muted-foreground text-muted-foreground">
                       <Circle className="h-3 w-3" />
                       Sent
+                    </Badge>
+                  )}
+                  {email.status === "sending" && (
+                    <Badge variant="outline" className="gap-1 border-primary text-primary">
+                      <Send className="h-3 w-3" />
+                      Sending
+                    </Badge>
+                  )}
+                  {email.status === "queued" && (
+                    <Badge variant="outline" className="gap-1 border-muted-foreground text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      Queued
+                    </Badge>
+                  )}
+                  {email.status === "bounced" && (
+                    <Badge variant="outline" className="gap-1 border-destructive text-destructive">
+                      <Ban className="h-3 w-3" />
+                      Bounced
+                    </Badge>
+                  )}
+                  {email.status === "complained" && (
+                    <Badge variant="outline" className="gap-1 border-destructive text-destructive">
+                      <AlertTriangle className="h-3 w-3" />
+                      Complained
                     </Badge>
                   )}
                 </TableCell>

@@ -4,6 +4,7 @@ const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000"
 
 export async function GET() {
   try {
+    console.log("backend url", BACKEND_URL)
     const response = await fetch(`${BACKEND_URL}/campaigns`, {
       method: "GET",
       headers: {
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { num_users } = body
-
+    console.log("backend url", BACKEND_URL)
     if (!num_users || num_users < 1) {
       return NextResponse.json(
         { error: "num_users must be a positive integer" },

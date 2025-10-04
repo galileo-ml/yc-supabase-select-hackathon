@@ -6,6 +6,8 @@ import { DatabaseSearchingAnimation } from "@/components/database-searching-anim
 import { EmailGenerationAnimation } from "@/components/email-generation-animation"
 import { EmailSendingAnimation } from "@/components/email-sending-animation"
 import { CampaignDashboard } from "@/components/campaign-dashboard"
+import { Button } from "@/components/ui/button"
+import { LayoutDashboard } from "lucide-react"
 import type { Campaign, BackendCampaignResponse } from "@/types/campaign"
 import { transformBackendCampaign } from "@/types/campaign"
 
@@ -17,6 +19,40 @@ export default function PhishingTrainerPage() {
   const [isModalOpen, setIsModalOpen] = useState(true)
   const [currentStep, setCurrentStep] = useState<"idle" | "searching" | "generating" | "sending" | "complete">("idle")
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
+
+  const handleRefreshCampaign = async (campaignId: string) => {
+    try {
+      const response = await fetch(`/api/campaigns/${campaignId}/status`)
+
+      if (!response.ok) {
+        throw new Error("Failed to refresh campaign")
+      }
+
+      const backendData: BackendCampaignResponse = await response.json()
+
+      // Find the existing campaign to get its metadata
+      const existingCampaign = campaigns.find((c) => c.id === campaignId)
+      if (!existingCampaign) {
+        console.error("Campaign not found in state")
+        return
+      }
+
+      // Transform backend response to frontend Campaign type
+      const refreshedCampaign = transformBackendCampaign(backendData, {
+        name: existingCampaign.name,
+        organization: existingCampaign.organization,
+        businessFunction: existingCampaign.businessFunction,
+      })
+
+      // Update campaigns state with refreshed data
+      setCampaigns((prevCampaigns) =>
+        prevCampaigns.map((c) => (c.id === campaignId ? refreshedCampaign : c))
+      )
+    } catch (error) {
+      console.error("Error refreshing campaign:", error)
+      // TODO: Show error toast/notification to user
+    }
+  }
 
   const handleCreateCampaign = async (data: {
     name: string
@@ -97,6 +133,22 @@ export default function PhishingTrainerPage() {
       />
 
       <div className="relative z-10 min-h-screen">
+        {/* Header with Dashboard Button */}
+        {campaigns.length > 0 && currentStep !== "idle" && currentStep !== "complete" && (
+          <div className="container mx-auto px-6 pt-6">
+            <div className="flex justify-end">
+              <Button
+                onClick={() => setCurrentStep("idle")}
+                variant="outline"
+                className="gap-2"
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                View Dashboard
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Main Content */}
         <main className="container mx-auto px-6 py-12">
           {currentStep === "searching" && (
@@ -114,12 +166,22 @@ export default function PhishingTrainerPage() {
               <EmailSendingAnimation />
             </div>
           )}
-          {(currentStep === "idle" || currentStep === "complete") && campaigns.length > 0 && (
-            <CampaignDashboard campaigns={campaigns} />
+          {(currentStep === "idle" || currentStep === "complete") && (
+            <CampaignDashboard
+              campaigns={campaigns}
+              onRefresh={handleRefreshCampaign}
+              onCreateNewCampaign={() => setIsModalOpen(true)}
+            />
           )}
         </main>
 
-        <CampaignModal open={isModalOpen} onOpenChange={setIsModalOpen} onSubmit={handleCreateCampaign} />
+        <CampaignModal
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          onSubmit={handleCreateCampaign}
+          onNavigateToDashboard={() => setCurrentStep("idle")}
+          hasCampaigns={campaigns.length > 0}
+        />
       </div>
     </div>
   )

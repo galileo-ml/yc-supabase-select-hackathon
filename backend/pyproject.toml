@@ -10,7 +10,8 @@ dependencies = [
     "resend",
     "sqlmodel",
     "psycopg[binary]",
-    "uvicorn[standard]"
+    "uvicorn[standard]",
+    "httpx"
 ]
 
 [build-system]

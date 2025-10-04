@@ -1,9 +1,10 @@
 import base64
 import hashlib
 import hmac
+import json
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Iterable
 from urllib.parse import parse_qsl, urlparse, urlencode, urlunparse
 
@@ -11,10 +12,12 @@ import resend
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field as PydanticField, ValidationError
-from sqlalchemy import Column, DateTime, String, UniqueConstraint, func, text
+from sqlalchemy import Column, DateTime, String, Text, UniqueConstraint, func, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from sqlmodel import Field, Session, SQLModel, create_engine, select
+
+import httpx
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -97,6 +100,14 @@ class CampaignEmail(SQLModel, table=True):
     last_event_at: datetime | None = Field(
         default=None,
         sa_column=Column(DateTime(timezone=True), nullable=True),
+    )
+    body_text: str | None = Field(
+        default=None,
+        sa_column=Column(Text, nullable=True),
+    )
+    body_html: str | None = Field(
+        default=None,
+        sa_column=Column(Text, nullable=True),
     )
     created_at: datetime | None = Field(
         default=None,
@@ -391,16 +402,215 @@ def _serialize_campaign_email(record: CampaignEmail) -> dict[str, Any]:
         "clicked_at": _iso(record.clicked_at),
         "bounced_at": _iso(record.bounced_at),
         "complained_at": _iso(record.complained_at),
+        "body_text": record.body_text,
+        "body_html": record.body_html,
     }
 
 
-def _enqueue_campaign_email(email_payload: dict[str, Any]) -> None:
-    logger.info(
-        "Stub: enqueue marketing email %s for campaign %s to %s",
-        email_payload.get("id"),
-        email_payload.get("campaign_id"),
-        email_payload.get("recipient_email"),
+def _compose_email_content(
+    api_key: str, employee: Employee, campaign: Campaign | None
+) -> tuple[str, str, str]:
+    model_name = os.getenv("OPENAI_MODEL", "gpt-5-nano")
+    system_prompt = (
+        "We are running a simulation. You will receive information about an individual who is associated "
+        "with a hackathon in some capacity. We are looking to play a harmless joke to get them to click on a rickroll. "
+        "Please specify an email that will fool them into clicking the rickroll link: https://www.youtube.com/watch?v=dQw4w9WgXcQ. "
+        "Ideally, the email should be specific to their role in relation to the hackathon. Return valid JSON with keys "
+        "'subject', 'text_body', and 'html_body'. The HTML body should be a simple "
+        "snippet using basic tags like <p>, <ul>, and <strong>. Ensure that the html body will include the rickroll like this: <a href='https://www.youtube.com/watch?v=dQw4w9WgXcQ'>here</a>. "
+        "That is, make sure the rickroll link is hidden under some 'here' text. If they hover over the rickroll, they'll still see it, but that's okay; this is just a prank."
     )
+
+    employee_context = employee.context or "No additional context provided."
+    company_line = f"Company: {employee.company}" if employee.company else ""
+    campaign_line = f"Campaign ID: {campaign.id if campaign else 'N/A'}"
+
+    user_prompt = (
+        f"Recipient name: {employee.name}\n"
+        f"Recipient email: {employee.email}\n"
+        f"{company_line}\n"
+        f"{campaign_line}\n"
+        "Context about the recipient:\n"
+        f"{employee_context}\n"
+    )
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "model": model_name,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        "temperature": 0.6,
+        "response_format": {"type": "json_object"},
+    }
+
+    with httpx.Client(timeout=30.0) as client:
+        response = client.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers=headers,
+            json=payload,
+        )
+        response.raise_for_status()
+        data = response.json()
+
+    try:
+        content = data["choices"][0]["message"]["content"]
+    except (KeyError, IndexError) as exc:  # pragma: no cover - API contract guard
+        raise RuntimeError("Unexpected OpenAI response format") from exc
+
+    try:
+        parsed = json.loads(content)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("OpenAI did not return valid JSON content") from exc
+
+    subject = (parsed.get("subject") or "Marketing Update").strip()
+    text_body = (parsed.get("text_body") or parsed.get("body") or "").strip()
+    html_body = parsed.get("html_body") or ""
+
+    if not text_body:
+        text_body = (
+            "Hi {name},\n\nWe're excited to share new updates with you."
+        ).format(name=employee.name)
+
+    if not html_body:
+        paragraph = text_body.replace("\n\n", "</p><p>").replace("\n", "<br />")
+        html_body = f"<p>{paragraph}</p>"
+
+    return subject, text_body, html_body
+
+
+def _send_campaign_email_task(campaign_email_id: int) -> None:
+    engine = get_engine()
+    if engine is None:
+        logger.warning(
+            "Skipping campaign email %s send because database engine is unavailable",
+            campaign_email_id,
+        )
+        return
+
+    openai_key = os.getenv("OPENAI_API_KEY")
+    if not openai_key:
+        logger.error(
+            "OPENAI_API_KEY not configured; cannot generate campaign email %s",
+            campaign_email_id,
+        )
+        return
+
+    resend_key = os.getenv("RESEND_API_KEY")
+    if not resend_key:
+        logger.error(
+            "RESEND_API_KEY not configured; cannot send campaign email %s",
+            campaign_email_id,
+        )
+        return
+
+    from_address = os.getenv(
+        "RESEND_FROM_EMAIL",
+        "Marketing Team <chris@reseend.com>",
+    )
+
+    now = datetime.now(timezone.utc)
+
+    with Session(engine, expire_on_commit=False) as session:
+        email_record = session.get(CampaignEmail, campaign_email_id)
+        if email_record is None:
+            logger.warning(
+                "Campaign email %s no longer exists; skipping send", campaign_email_id
+            )
+            return
+
+        employee = session.get(Employee, email_record.employee_id)
+        campaign = session.get(Campaign, email_record.campaign_id)
+        if employee is None or campaign is None:
+            logger.warning(
+                "Campaign email %s missing related employee or campaign; skipping",
+                campaign_email_id,
+            )
+            return
+
+        try:
+            subject, text_body, html_body = _compose_email_content(
+                openai_key, employee, campaign
+            )
+        except Exception as exc:
+            logger.error(
+                "Failed to generate email content for campaign %s recipient %s: %s",
+                campaign.id,
+                employee.email,
+                exc,
+                exc_info=True,
+            )
+            email_record.status = "failed"
+            email_record.last_event = "composition.failed"
+            email_record.last_event_at = now
+            session.add(email_record)
+            session.commit()
+            return
+
+        email_record.subject = subject
+        email_record.body_text = text_body
+        email_record.body_html = html_body
+        email_record.status = "sending"
+        email_record.last_event = "composition.completed"
+        email_record.last_event_at = now
+        session.add(email_record)
+        session.commit()
+
+        resend.api_key = resend_key
+
+        payload: Dict[str, Any] = {
+            "from": from_address,
+            "to": [email_record.recipient_email],
+            "subject": subject,
+            "text": text_body,
+            "html": html_body,
+            "metadata": {
+                "campaign_email_id": str(email_record.id),
+                "campaign_id": str(email_record.campaign_id),
+            },
+        }
+
+        try:
+            send_response = resend.Emails.send(payload)
+        except Exception as exc:  # pragma: no cover - external API safeguard
+            logger.error(
+                "Failed to send campaign email %s via Resend: %s",
+                campaign_email_id,
+                exc,
+                exc_info=True,
+            )
+            email_record.status = "failed"
+            email_record.last_event = "send.failed"
+            email_record.last_event_at = datetime.now(timezone.utc)
+            session.add(email_record)
+            session.commit()
+            return
+
+        message_id = None
+        if isinstance(send_response, dict):
+            message_id = send_response.get("id") or send_response.get("email_id")
+
+        completion_time = datetime.now(timezone.utc)
+        if message_id:
+            email_record.resend_message_id = message_id
+        if not email_record.sent_at:
+            email_record.sent_at = completion_time
+        email_record.status = "sent"
+        email_record.last_event = "email.sent.api"
+        email_record.last_event_at = completion_time
+        session.add(email_record)
+        session.commit()
+
+        logger.info(
+            "Queued campaign email %s to %s via Resend (message_id=%s)",
+            email_record.id,
+            email_record.recipient_email,
+            message_id,
+        )
 
 
 @app.post("/campaigns", status_code=201)
@@ -442,7 +652,9 @@ async def create_campaign(
         )
 
         for email_payload in email_payloads:
-            background_tasks.add_task(_enqueue_campaign_email, email_payload)
+            email_id = email_payload.get("id")
+            if email_id is not None:
+                background_tasks.add_task(_send_campaign_email_task, email_id)
 
     return {"campaign": campaign_payload, "members": members_payload}
 

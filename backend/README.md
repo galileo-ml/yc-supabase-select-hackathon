@@ -21,12 +21,18 @@ Export the credentials before running the server:
 export RESEND_API_KEY="your_resend_api_key"
 export SUPABASE_URL_IPV6="postgresql://user:password@ipv6-host:5432/postgres"
 export SUPABASE_URL_IPV4="postgresql://user:password@ipv4-host:5432/postgres"
+export RESEND_WEBHOOK_URL="https://your.public.domain/webhooks/resend"
+export RESEND_WEBHOOK_SECRET="your_resend_webhook_secret"
+export OPENAI_API_KEY="your_openai_api_key"
 ```
 On Windows PowerShell:
 ```powershell
 setx RESEND_API_KEY "your_resend_api_key"
 setx SUPABASE_URL_IPV6 "postgresql://user:password@ipv6-host:5432/postgres"
 setx SUPABASE_URL_IPV4 "postgresql://user:password@ipv4-host:5432/postgres"
+setx RESEND_WEBHOOK_URL "https://your.public.domain/webhooks/resend"
+setx RESEND_WEBHOOK_SECRET "your_resend_webhook_secret"
+setx OPENAI_API_KEY "your_openai_api_key"
 ```
 You can also load them from a local `.env` file with `set -o allexport && source .env && set +o allexport`.
 

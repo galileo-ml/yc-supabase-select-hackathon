@@ -2,9 +2,9 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Building2, Target, Users, X } from "lucide-react"
+import { Building2, Target, Users } from "lucide-react"
 
 interface CampaignModalProps {
   open: boolean
@@ -15,6 +15,8 @@ interface CampaignModalProps {
     businessFunction: string
     targetCount: number
   }) => void
+  onNavigateToDashboard?: () => void
+  hasCampaigns?: boolean
 }
 
 const ORGANIZATIONS = [
@@ -38,11 +40,29 @@ const BUSINESS_FUNCTIONS = [
 
 const DEFAULT_TARGET_COUNT = "10"
 
-export function CampaignModal({ open, onOpenChange, onSubmit }: CampaignModalProps) {
+export function CampaignModal({ open, onOpenChange, onSubmit, onNavigateToDashboard, hasCampaigns }: CampaignModalProps) {
   const [name, setName] = useState("")
   const [organization, setOrganization] = useState("")
   const [businessFunction, setBusinessFunction] = useState("")
   const [targetCount, setTargetCount] = useState(DEFAULT_TARGET_COUNT)
+
+  const handleClose = useCallback(() => {
+    if (hasCampaigns && onNavigateToDashboard) {
+      onNavigateToDashboard()
+    }
+    onOpenChange(false)
+  }, [hasCampaigns, onNavigateToDashboard, onOpenChange])
+
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && open) {
+        handleClose()
+      }
+    }
+
+    document.addEventListener("keydown", handleEscape)
+    return () => document.removeEventListener("keydown", handleEscape)
+  }, [open, handleClose])
 
   if (!open) {
     return null
@@ -64,13 +84,18 @@ export function CampaignModal({ open, onOpenChange, onSubmit }: CampaignModalPro
     onOpenChange(false)
   }
 
-  const handleClose = () => {
-    onOpenChange(false)
+  const handleBackdropClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (event.target === event.currentTarget) {
+      handleClose()
+    }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-      <div className="w-full max-w-xl overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+      onClick={handleBackdropClick}
+    >
+      <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-card shadow-2xl scrollbar-hide">
         <div className="flex items-start justify-between border-b border-border px-6 py-5">
           <div>
             <h2 className="font-sans text-xl font-semibold text-foreground">Create New Campaign</h2>
@@ -78,8 +103,8 @@ export function CampaignModal({ open, onOpenChange, onSubmit }: CampaignModalPro
               Configure your phishing simulation campaign parameters.
             </p>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleClose} aria-label="Close campaign modal">
-            <X className="h-4 w-4" />
+          <Button variant="outline" size="sm" onClick={handleClose}>
+            View Campaigns
           </Button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-6 px-6 py-6">

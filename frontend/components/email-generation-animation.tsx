@@ -7,12 +7,12 @@ import { Mail } from "lucide-react"
 
 const EMAIL_TEMPLATES = [
   {
-    subject: "Urgent: Password Reset Required",
-    body: "Dear Team Member,\n\nWe have detected unusual activity on your account. Please reset your password immediately by clicking the link below...",
+    subject: "Resend Sponsor Announcement: New Prize Category at the Supabase Select Hackathon",
+    body: "Hi Ant,\n\nResend, as a proud sponsor of the Supabase Select Hackathon, is excited to announce an additional prize category at the event. Here's a quick overview:\n\nNew Prize Category: To be announced at the event\nEligibility: Open to all hackathon participants\nPrize: Details TBD at opening remarks\nTimeline: Announcement during opening remarks on day 1\n\nWe appreciate your support and participation.\n\nSee here for more info.\n\nBest regards,\nThe Supabase Select Hackathon Team",
   },
   {
-    subject: "IT Department: System Upgrade",
-    body: "Hello,\n\nOur IT department is performing a mandatory system upgrade. Please verify your credentials to maintain access...",
+    subject: "Sponsorship Prize Update",
+    body: "Hi Reno,\n\nWe are debating whether or not to change the prize to $1,000 in credits. Let me know if that is okay.\n\nBest,\n\nChris.",
   },
   {
     subject: "HR: Benefits Enrollment Deadline",
@@ -22,7 +22,7 @@ const EMAIL_TEMPLATES = [
 
 export function EmailGenerationAnimation() {
   const [text, setText] = useState("")
-  const [currentEmail, setCurrentEmail] = useState(0)
+  const [currentEmail, setCurrentEmail] = useState(() => Math.floor(Math.random() * EMAIL_TEMPLATES.length))
 
   useEffect(() => {
     const template = EMAIL_TEMPLATES[currentEmail]

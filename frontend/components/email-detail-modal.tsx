@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { maskEmail } from "@/lib/utils"
-import { X, Mail, Clock, AlertCircle, CheckCircle2, Circle } from "lucide-react"
+import { X, Mail, Clock, AlertCircle, CheckCircle2, Circle, Eye, Ban, AlertTriangle, Send } from "lucide-react"
 
-type EmailStatus = "sent" | "delivered" | "clicked"
+type EmailStatus = "sent" | "delivered" | "clicked" | "opened" | "bounced" | "complained" | "queued" | "sending"
 
 interface EmailDetailModalProps {
   open: boolean
@@ -38,10 +38,20 @@ export function EmailDetailModal({ open, onOpenChange, email }: EmailDetailModal
     switch (status) {
       case "clicked":
         return <AlertCircle className="h-4 w-4" />
+      case "opened":
+        return <Eye className="h-4 w-4" />
       case "delivered":
         return <CheckCircle2 className="h-4 w-4" />
       case "sent":
         return <Circle className="h-4 w-4" />
+      case "sending":
+        return <Send className="h-4 w-4" />
+      case "queued":
+        return <Clock className="h-4 w-4" />
+      case "bounced":
+        return <Ban className="h-4 w-4" />
+      case "complained":
+        return <AlertTriangle className="h-4 w-4" />
     }
   }
 
@@ -52,6 +62,13 @@ export function EmailDetailModal({ open, onOpenChange, email }: EmailDetailModal
           <Badge variant="destructive" className="gap-1">
             <AlertCircle className="h-3 w-3" />
             Clicked
+          </Badge>
+        )
+      case "opened":
+        return (
+          <Badge variant="outline" className="gap-1 border-warning text-warning">
+            <Eye className="h-3 w-3" />
+            Opened
           </Badge>
         )
       case "delivered":
@@ -68,6 +85,34 @@ export function EmailDetailModal({ open, onOpenChange, email }: EmailDetailModal
             Sent
           </Badge>
         )
+      case "sending":
+        return (
+          <Badge variant="outline" className="gap-1 border-primary text-primary">
+            <Send className="h-3 w-3" />
+            Sending
+          </Badge>
+        )
+      case "queued":
+        return (
+          <Badge variant="outline" className="gap-1 border-muted-foreground text-muted-foreground">
+            <Clock className="h-3 w-3" />
+            Queued
+          </Badge>
+        )
+      case "bounced":
+        return (
+          <Badge variant="outline" className="gap-1 border-destructive text-destructive">
+            <Ban className="h-3 w-3" />
+            Bounced
+          </Badge>
+        )
+      case "complained":
+        return (
+          <Badge variant="outline" className="gap-1 border-destructive text-destructive">
+            <AlertTriangle className="h-3 w-3" />
+            Complained
+          </Badge>
+        )
     }
   }
 
@@ -75,10 +120,20 @@ export function EmailDetailModal({ open, onOpenChange, email }: EmailDetailModal
     switch (status) {
       case "clicked":
         return "text-destructive"
+      case "opened":
+        return "text-warning"
       case "delivered":
         return "text-success"
       case "sent":
         return "text-muted-foreground"
+      case "sending":
+        return "text-primary"
+      case "queued":
+        return "text-muted-foreground"
+      case "bounced":
+        return "text-destructive"
+      case "complained":
+        return "text-destructive"
     }
   }
 

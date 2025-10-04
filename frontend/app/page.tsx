@@ -6,37 +6,55 @@ import { DatabaseSearchingAnimation } from "@/components/database-searching-anim
 import { EmailGenerationAnimation } from "@/components/email-generation-animation"
 import { EmailSendingAnimation } from "@/components/email-sending-animation"
 import { CampaignDashboard } from "@/components/campaign-dashboard"
+import { Button } from "@/components/ui/button"
+import { LayoutDashboard } from "lucide-react"
+import type { Campaign, BackendCampaignResponse } from "@/types/campaign"
+import { transformBackendCampaign } from "@/types/campaign"
 
-const SEARCH_DURATION_MS = 3000
-const GENERATION_DURATION_MS = 7000
-const SENDING_DURATION_MS = 8000
-
-type Campaign = {
-  id: string
-  name: string
-  organization: string
-  businessFunction: string
-  createdAt: Date
-  emails: Array<{
-    id: string
-    recipient: string
-    subject: string
-    content: string
-    status: "sent" | "delivered" | "clicked"
-    sentAt: Date
-    statusHistory: Array<{
-      status: "sent" | "delivered" | "clicked"
-      timestamp: Date
-    }>
-  }>
-}
+const SEARCH_DURATION_MS = 6000
+const GENERATION_DURATION_MS = 6000
+const SENDING_DURATION_MS = 6000
 
 export default function PhishingTrainerPage() {
   const [isModalOpen, setIsModalOpen] = useState(true)
   const [currentStep, setCurrentStep] = useState<"idle" | "searching" | "generating" | "sending" | "complete">("idle")
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
 
-  const handleCreateCampaign = (data: {
+  const handleRefreshCampaign = async (campaignId: string) => {
+    try {
+      const response = await fetch(`/api/campaigns/${campaignId}/status`)
+
+      if (!response.ok) {
+        throw new Error("Failed to refresh campaign")
+      }
+
+      const backendData: BackendCampaignResponse = await response.json()
+
+      // Find the existing campaign to get its metadata
+      const existingCampaign = campaigns.find((c) => c.id === campaignId)
+      if (!existingCampaign) {
+        console.error("Campaign not found in state")
+        return
+      }
+
+      // Transform backend response to frontend Campaign type
+      const refreshedCampaign = transformBackendCampaign(backendData, {
+        name: existingCampaign.name,
+        organization: existingCampaign.organization,
+        businessFunction: existingCampaign.businessFunction,
+      })
+
+      // Update campaigns state with refreshed data
+      setCampaigns((prevCampaigns) =>
+        prevCampaigns.map((c) => (c.id === campaignId ? refreshedCampaign : c))
+      )
+    } catch (error) {
+      console.error("Error refreshing campaign:", error)
+      // TODO: Show error toast/notification to user
+    }
+  }
+
+  const handleCreateCampaign = async (data: {
     name: string
     organization: string
     businessFunction: string
@@ -49,79 +67,46 @@ export default function PhishingTrainerPage() {
     setTimeout(() => {
       setCurrentStep("generating")
 
-      // Simulate email generation (7 seconds - longest phase)
+      // Simulate email generation phase
       setTimeout(() => {
         setCurrentStep("sending")
 
-        // Simulate email sending (8 seconds)
-        setTimeout(() => {
-          const newCampaign: Campaign = {
-            id: Math.random().toString(36).substr(2, 9),
-            name: data.name,
-            organization: data.organization,
-            businessFunction: data.businessFunction,
-            createdAt: new Date(),
-            emails: Array.from({ length: data.targetCount }, (_, i) => {
-              const baseTime = new Date()
-              const sentTime = new Date(baseTime.getTime() - (data.targetCount - i) * 1000)
-              const status: "sent" | "delivered" | "clicked" = Math.random() > 0.7 ? "clicked" : Math.random() > 0.5 ? "delivered" : "sent"
+        // Call backend API to create campaign
+        setTimeout(async () => {
+          try {
+            const response = await fetch("/api/campaigns", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ num_users: data.targetCount }),
+            })
 
-              // Build status history based on final status
-              const statusHistory: Array<{ status: "sent" | "delivered" | "clicked"; timestamp: Date }> = [
-                { status: "sent", timestamp: sentTime }
-              ]
+            if (!response.ok) {
+              throw new Error("Failed to create campaign")
+            }
 
-              if (status === "delivered" || status === "clicked") {
-                statusHistory.push({
-                  status: "delivered",
-                  timestamp: new Date(sentTime.getTime() + Math.random() * 60000 + 5000) // 5-65 seconds after sent
-                })
-              }
+            const backendData: BackendCampaignResponse = await response.json()
 
-              if (status === "clicked") {
-                statusHistory.push({
-                  status: "clicked",
-                  timestamp: new Date(statusHistory[statusHistory.length - 1].timestamp.getTime() + Math.random() * 30000 + 2000) // 2-32 seconds after delivered
-                })
-              }
+            // Transform backend response to frontend Campaign type
+            const newCampaign = transformBackendCampaign(backendData, {
+              name: data.name,
+              organization: data.organization,
+              businessFunction: data.businessFunction,
+            })
 
-              return {
-                id: Math.random().toString(36).substr(2, 9),
-                recipient: `employee${i + 1}@company.com`,
-                subject: `Important: Action Required - ${data.organization}`,
-                content: `
-                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                    <p>Dear Team Member,</p>
-                    <p>This is an urgent notification regarding your account security. We have detected unusual activity and need you to verify your credentials immediately.</p>
-                    <p><strong>Action Required:</strong> Please click the link below to verify your account within 24 hours to prevent suspension.</p>
-                    <p style="margin: 20px 0;">
-                      <a href="#" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
-                        Verify Account Now
-                      </a>
-                    </p>
-                    <p>If you do not recognize this activity, please contact IT security immediately.</p>
-                    <p style="margin-top: 30px; color: #666; font-size: 12px;">
-                      This is a simulated phishing email for security awareness training purposes.
-                    </p>
-                    <p style="color: #666; font-size: 12px;">
-                      IT Security Team<br>
-                      ${data.organization}
-                    </p>
-                  </div>
-                `,
-                status,
-                sentAt: sentTime,
-                statusHistory,
-              }
-            }),
-          }
+            setCampaigns([newCampaign, ...campaigns])
+            setCurrentStep("complete")
 
-          setCampaigns([newCampaign, ...campaigns])
-          setCurrentStep("complete")
-
-          setTimeout(() => {
+            setTimeout(() => {
+              setCurrentStep("idle")
+            }, 2000)
+          } catch (error) {
+            console.error("Error creating campaign:", error)
+            // Revert to idle state on error
             setCurrentStep("idle")
-          }, 2000)
+            // TODO: Show error toast/notification to user
+          }
         }, SENDING_DURATION_MS)
       }, GENERATION_DURATION_MS)
     }, SEARCH_DURATION_MS)
@@ -148,6 +133,22 @@ export default function PhishingTrainerPage() {
       />
 
       <div className="relative z-10 min-h-screen">
+        {/* Header with Dashboard Button */}
+        {campaigns.length > 0 && currentStep !== "idle" && currentStep !== "complete" && (
+          <div className="container mx-auto px-6 pt-6">
+            <div className="flex justify-end">
+              <Button
+                onClick={() => setCurrentStep("idle")}
+                variant="outline"
+                className="gap-2"
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                View Dashboard
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Main Content */}
         <main className="container mx-auto px-6 py-12">
           {currentStep === "searching" && (
@@ -165,12 +166,22 @@ export default function PhishingTrainerPage() {
               <EmailSendingAnimation />
             </div>
           )}
-          {(currentStep === "idle" || currentStep === "complete") && campaigns.length > 0 && (
-            <CampaignDashboard campaigns={campaigns} />
+          {(currentStep === "idle" || currentStep === "complete") && (
+            <CampaignDashboard
+              campaigns={campaigns}
+              onRefresh={handleRefreshCampaign}
+              onCreateNewCampaign={() => setIsModalOpen(true)}
+            />
           )}
         </main>
 
-        <CampaignModal open={isModalOpen} onOpenChange={setIsModalOpen} onSubmit={handleCreateCampaign} />
+        <CampaignModal
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          onSubmit={handleCreateCampaign}
+          onNavigateToDashboard={() => setCurrentStep("idle")}
+          hasCampaigns={campaigns.length > 0}
+        />
       </div>
     </div>
   )

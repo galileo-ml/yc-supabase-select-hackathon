@@ -15,25 +15,27 @@ type PathConfig = {
 const PATHS: PathConfig[] = [
   {
     id: "path-top",
-    path: "M 360,60 C 255,75 170,95 40,110",
-    icon: "fingerprint",
+    path: "M 0,100 C 145,80 230,65 400,50",
+    icon: "database",
     delay: 0,
   },
   {
     id: "path-middle",
-    path: "M 360,100 C 255,105 170,115 40,115",
-    icon: "network",
+    path: "M 0,100 C 145,100 230,100 400,100",
+    icon: "database",
     delay: 0.25,
   },
   {
     id: "path-bottom",
-    path: "M 360,140 C 255,130 170,120 40,120",
+    path: "M 0,100 C 145,120 230,135 400,150",
     icon: "database",
     delay: 0.5,
   },
 ]
 
 export function DatabaseSearchingAnimation() {
+  const DatabaseIcon = iconLibrary.database
+
   return (
     <div className="flex w-full max-w-6xl items-center gap-8 p-8 lg:p-16">
       <div className="flex shrink-0 flex-col items-center gap-3">
@@ -67,25 +69,6 @@ export function DatabaseSearchingAnimation() {
           ))}
         </svg>
 
-        {PATHS.map(({ id, path, icon, delay }) => {
-          const SourceIcon = iconLibrary[icon]
-          const sharedStyle = {
-            offsetPath: `path('${path}')`,
-            WebkitOffsetPath: `path('${path}')`,
-            offsetDistance: "0%",
-            WebkitOffsetDistance: "0%",
-            offsetRotate: "0deg",
-            WebkitOffsetRotate: "0deg",
-          } satisfies CSSProperties
-
-          return (
-            <div key={`source-${id}`} className="path-source" style={sharedStyle}>
-              <div className="path-source__icon" style={{ animationDelay: `${delay}s` }}>
-                <SourceIcon className="h-8 w-8" />
-              </div>
-            </div>
-          )
-        })}
 
         {PATHS.map(({ id, path, delay }) => {
           const sharedStyle: CSSProperties = {
@@ -123,6 +106,18 @@ export function DatabaseSearchingAnimation() {
         })}
       </div>
 
+      <div className="flex shrink-0 flex-col items-center gap-12">
+        {[0, 1, 2].map((index) => (
+          <div
+            key={`database-${index}`}
+            className="database-icon"
+            style={{ animationDelay: `${index * 0.25}s` }}
+          >
+            <DatabaseIcon className="h-9 w-9" />
+          </div>
+        ))}
+      </div>
+
       <style>{`
         .query-border-animation {
           animation: queryBorderPulse 2.1s ease-in-out infinite;
@@ -155,27 +150,14 @@ export function DatabaseSearchingAnimation() {
           animation: iconTravel 2.6s ease-in-out infinite;
         }
 
-        .path-source {
-          position: absolute;
-          top: 0;
-          left: 0;
-          pointer-events: none;
-          z-index: 1;
-        }
-
-        .path-source__icon {
+        .database-icon {
           display: flex;
-          height: 48px;
-          width: 48px;
           align-items: center;
           justify-content: center;
-          transform: translate(-50%, -50%);
           animation: destinationPulse 2.4s ease-in-out infinite;
         }
 
-        .path-source__icon svg {
-          height: 34px;
-          width: 34px;
+        .database-icon svg {
           color: var(--foreground);
         }
 
@@ -187,21 +169,21 @@ export function DatabaseSearchingAnimation() {
 
         @keyframes dotTravel {
           0% {
-            offset-distance: 0%;
+            offset-distance: 100%;
             opacity: 0;
           }
           12% {
             opacity: 0.6;
           }
           100% {
-            offset-distance: 100%;
+            offset-distance: 0%;
             opacity: 0;
           }
         }
 
         @keyframes iconTravel {
           0% {
-            offset-distance: 0%;
+            offset-distance: 100%;
             opacity: 0;
           }
           12% {
@@ -211,15 +193,15 @@ export function DatabaseSearchingAnimation() {
             opacity: 1;
           }
           100% {
-            offset-distance: 100%;
+            offset-distance: 0%;
             opacity: 0;
           }
         }
 
         @keyframes destinationPulse {
-          0% { transform: translate(-50%, -50%) scale(1); }
-          50% { transform: translate(-50%, -50%) scale(1.06); }
-          100% { transform: translate(-50%, -50%) scale(1); }
+          0% { transform: scale(1); }
+          50% { transform: scale(1.06); }
+          100% { transform: scale(1); }
         }
       `}</style>
     </div>

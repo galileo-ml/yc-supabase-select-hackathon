@@ -2,7 +2,7 @@
 
 import type { CSSProperties } from "react"
 import { useEffect, useState } from "react"
-import { Database, Laptop, Mail } from "lucide-react"
+import { Laptop, Mail, Mailbox } from "lucide-react"
 
 const DESTINATION_COUNT = 3
 const FLIGHT_DURATION_MS = 1200
@@ -68,7 +68,7 @@ export function EmailSendingAnimation() {
           isActive ? "text-primary" : "text-muted-foreground"
         } ${isBouncing ? "animate-mailbox-bounce" : ""}`}
       >
-        <Database className="h-9 w-9" />
+        <Mailbox className="h-9 w-9" />
       </div>
     )
   }

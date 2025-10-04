@@ -1,8 +1,10 @@
 "use client"
 
+import { useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { EmailDetailModal } from "@/components/email-detail-modal"
 import { Mail, AlertCircle, CheckCircle2, Circle } from "lucide-react"
 
 export type Campaign = {
@@ -15,8 +17,13 @@ export type Campaign = {
     id: string
     recipient: string
     subject: string
-    status: "sent" | "opened" | "clicked"
+    content: string
+    status: "sent" | "delivered" | "clicked"
     sentAt: Date
+    statusHistory: Array<{
+      status: "sent" | "delivered" | "clicked"
+      timestamp: Date
+    }>
   }>
 }
 
@@ -25,16 +32,24 @@ interface CampaignDashboardProps {
 }
 
 export function CampaignDashboard({ campaigns }: CampaignDashboardProps) {
+  const [selectedEmail, setSelectedEmail] = useState<Campaign["emails"][0] | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
   if (!campaigns?.length) {
     return null
   }
 
   const latestCampaign = campaigns[0]
 
+  const handleRowClick = (email: Campaign["emails"][0]) => {
+    setSelectedEmail(email)
+    setIsModalOpen(true)
+  }
+
   const stats = {
     total: latestCampaign.emails.length,
     sent: latestCampaign.emails.filter((e) => e.status === "sent").length,
-    opened: latestCampaign.emails.filter((e) => e.status === "opened").length,
+    delivered: latestCampaign.emails.filter((e) => e.status === "delivered").length,
     clicked: latestCampaign.emails.filter((e) => e.status === "clicked").length,
   }
 
@@ -66,20 +81,20 @@ export function CampaignDashboard({ campaigns }: CampaignDashboardProps) {
         <Card className="border-border bg-card p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">Delivered</p>
+              <p className="text-sm text-muted-foreground">Sent</p>
               <p className="mt-1 font-sans text-2xl font-semibold text-foreground">{stats.sent}</p>
             </div>
-            <CheckCircle2 className="h-8 w-8 text-muted-foreground" />
+            <Circle className="h-8 w-8 text-muted-foreground" />
           </div>
         </Card>
 
         <Card className="border-border bg-card p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">Opened</p>
-              <p className="mt-1 font-sans text-2xl font-semibold text-foreground">{stats.opened}</p>
+              <p className="text-sm text-muted-foreground">Delivered</p>
+              <p className="mt-1 font-sans text-2xl font-semibold text-success">{stats.delivered}</p>
             </div>
-            <Circle className="h-8 w-8 text-warning" />
+            <CheckCircle2 className="h-8 w-8 text-success" />
           </div>
         </Card>
 
@@ -112,7 +127,11 @@ export function CampaignDashboard({ campaigns }: CampaignDashboardProps) {
           </TableHeader>
           <TableBody>
             {latestCampaign.emails.map((email) => (
-              <TableRow key={email.id} className="border-border">
+              <TableRow
+                key={email.id}
+                className="border-border cursor-pointer transition-colors hover:bg-muted/50"
+                onClick={() => handleRowClick(email)}
+              >
                 <TableCell>
                   {email.status === "clicked" && (
                     <Badge variant="destructive" className="gap-1">
@@ -120,15 +139,15 @@ export function CampaignDashboard({ campaigns }: CampaignDashboardProps) {
                       Clicked
                     </Badge>
                   )}
-                  {email.status === "opened" && (
-                    <Badge variant="outline" className="gap-1 border-warning text-warning">
-                      <Circle className="h-3 w-3" />
-                      Opened
+                  {email.status === "delivered" && (
+                    <Badge variant="outline" className="gap-1 border-success text-success">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Delivered
                     </Badge>
                   )}
                   {email.status === "sent" && (
-                    <Badge variant="outline" className="gap-1 border-success text-success">
-                      <CheckCircle2 className="h-3 w-3" />
+                    <Badge variant="outline" className="gap-1 border-muted-foreground text-muted-foreground">
+                      <Circle className="h-3 w-3" />
                       Sent
                     </Badge>
                   )}
@@ -141,6 +160,8 @@ export function CampaignDashboard({ campaigns }: CampaignDashboardProps) {
           </TableBody>
         </Table>
       </Card>
+
+      <EmailDetailModal open={isModalOpen} onOpenChange={setIsModalOpen} email={selectedEmail} />
     </div>
   )
 }

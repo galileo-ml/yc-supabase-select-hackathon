@@ -1,9 +1,14 @@
 "use client"
 
+import { useState } from "react"
 import type { CSSProperties } from "react"
+import Image from "next/image"
 
 import type { IconKey } from "@/lib/icons"
 import { iconLibrary } from "@/lib/icons"
+import file1 from "@/assets/file1.png"
+import file2 from "@/assets/file2.png"
+import file3 from "@/assets/file3.png"
 
 type PathConfig = {
   id: string
@@ -12,29 +17,47 @@ type PathConfig = {
   delay: number
 }
 
-const PATHS: PathConfig[] = [
+const VISUAL_PATHS = [
+  "M 0,100 C 145,80 230,65 400,50",
+  "M 0,100 C 145,100 230,100 400,100",
+  "M 0,100 C 145,120 230,135 400,150",
+]
+
+const FILE_PATHS: PathConfig[] = [
   {
     id: "path-top",
-    path: "M 0,100 C 145,80 230,65 400,50",
+    path: "M 840,103 C 280,80 160,95 60,110",
     icon: "database",
     delay: 0,
   },
   {
     id: "path-middle",
-    path: "M 0,100 C 145,100 230,100 400,100",
+    path: "M 360,110 C 260,110 160,110 60,110",
     icon: "database",
     delay: 0.25,
   },
   {
     id: "path-bottom",
-    path: "M 0,100 C 145,120 230,135 400,150",
+    path: "M 360,160 C 280,140 160,125 60,110",
     icon: "database",
     delay: 0.5,
   },
 ]
 
+const FILE_ASSETS = [file1, file2, file3] as const
+
 export function DatabaseSearchingAnimation() {
   const DatabaseIcon = iconLibrary.database
+  const randomAsset = () => FILE_ASSETS[Math.floor(Math.random() * FILE_ASSETS.length)]
+  const [fileAssignments, setFileAssignments] = useState(() => FILE_PATHS.map(() => randomAsset()))
+
+  const handleAnimationIteration = (index: number) => {
+    setFileAssignments((previous) => {
+      const next = [...previous]
+      next[index] = randomAsset()
+      return next
+    })
+  }
 
   return (
     <div className="flex w-full max-w-6xl items-center gap-8 p-8 lg:p-16">
@@ -56,9 +79,9 @@ export function DatabaseSearchingAnimation() {
           preserveAspectRatio="none"
           style={{ overflow: "visible" }}
         >
-          {PATHS.map(({ id, path }) => (
+          {VISUAL_PATHS.map((path, index) => (
             <path
-              key={id}
+              key={`visual-${index}`}
               d={path}
               stroke="var(--border)"
               strokeWidth={1.5}
@@ -70,7 +93,7 @@ export function DatabaseSearchingAnimation() {
         </svg>
 
 
-        {PATHS.map(({ id, path, delay }) => {
+        {FILE_PATHS.map(({ id, path, delay }) => {
           const sharedStyle: CSSProperties = {
             offsetPath: `path('${path}')`,
             WebkitOffsetPath: `path('${path}')`,
@@ -86,8 +109,8 @@ export function DatabaseSearchingAnimation() {
           )
         })}
 
-        {PATHS.map(({ id, path, icon, delay }) => {
-          const Icon = iconLibrary[icon]
+        {FILE_PATHS.map(({ id, path, delay }, index) => {
+          const fileAsset = fileAssignments[index] ?? FILE_ASSETS[index % FILE_ASSETS.length]
           const sharedStyle: CSSProperties = {
             offsetPath: `path('${path}')`,
             WebkitOffsetPath: `path('${path}')`,
@@ -97,9 +120,14 @@ export function DatabaseSearchingAnimation() {
           }
 
           return (
-            <div key={`icon-${id}`} className="path-icon" style={sharedStyle}>
-              <div className="pointer-events-none flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-primary/10 shadow-sm">
-                <Icon className="h-5 w-5 text-primary" />
+            <div
+              key={`icon-${id}`}
+              className="path-icon"
+              style={sharedStyle}
+              onAnimationIteration={() => handleAnimationIteration(index)}
+            >
+              <div className="pointer-events-none -translate-x-1/2 -translate-y-1/2">
+                <Image src={fileAsset} alt={`File ${index + 1}`} width={32} height={32} />
               </div>
             </div>
           )
@@ -169,21 +197,21 @@ export function DatabaseSearchingAnimation() {
 
         @keyframes dotTravel {
           0% {
-            offset-distance: 100%;
+            offset-distance: 0%;
             opacity: 0;
           }
           12% {
             opacity: 0.6;
           }
           100% {
-            offset-distance: 0%;
+            offset-distance: 100%;
             opacity: 0;
           }
         }
 
         @keyframes iconTravel {
           0% {
-            offset-distance: 100%;
+            offset-distance: 0%;
             opacity: 0;
           }
           12% {
@@ -193,7 +221,7 @@ export function DatabaseSearchingAnimation() {
             opacity: 1;
           }
           100% {
-            offset-distance: 0%;
+            offset-distance: 100%;
             opacity: 0;
           }
         }

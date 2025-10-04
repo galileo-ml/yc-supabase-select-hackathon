@@ -394,7 +394,7 @@ def _serialize_campaign_email(record: CampaignEmail) -> dict[str, Any]:
     }
 
 
-def _enqueue_campaign_email_stub(email_payload: dict[str, Any]) -> None:
+def _enqueue_campaign_email(email_payload: dict[str, Any]) -> None:
     logger.info(
         "Stub: enqueue marketing email %s for campaign %s to %s",
         email_payload.get("id"),
@@ -442,7 +442,7 @@ async def create_campaign(
         )
 
         for email_payload in email_payloads:
-            background_tasks.add_task(_enqueue_campaign_email_stub, email_payload)
+            background_tasks.add_task(_enqueue_campaign_email, email_payload)
 
     return {"campaign": campaign_payload, "members": members_payload}
 

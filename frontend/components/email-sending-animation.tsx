@@ -5,7 +5,8 @@ import { Laptop, Mail, Mailbox } from "lucide-react"
 
 export function EmailSendingAnimation() {
   const [sentCount, setSentCount] = useState(0)
-  const [flyingEmails, setFlyingEmails] = useState<number[]>([])
+  const [flyingEmails, setFlyingEmails] = useState<{ id: number; mailboxIndex: number }[]>([])
+  const [bouncingMailboxes, setBouncingMailboxes] = useState<number[]>([])
   const totalEmails = 10
 
   useEffect(() => {
@@ -13,10 +14,20 @@ export function EmailSendingAnimation() {
       setSentCount((previous) => {
         if (previous < totalEmails) {
           const nextCount = previous + 1
-          setFlyingEmails((emails) => [...emails, nextCount])
+          const mailboxIndex = (previous) % 4 // Distribute across 4 mailboxes
+          setFlyingEmails((emails) => [...emails, { id: nextCount, mailboxIndex }])
 
+          // Trigger mailbox bounce when email arrives
           setTimeout(() => {
-            setFlyingEmails((emails) => emails.filter((id) => id !== nextCount))
+            setBouncingMailboxes((boxes) => [...boxes, mailboxIndex])
+
+            // Remove email from flying state
+            setFlyingEmails((emails) => emails.filter((email) => email.id !== nextCount))
+
+            // Stop mailbox bounce after animation
+            setTimeout(() => {
+              setBouncingMailboxes((boxes) => boxes.filter((idx) => idx !== mailboxIndex))
+            }, 400)
           }, 1200)
 
           return nextCount
@@ -25,7 +36,7 @@ export function EmailSendingAnimation() {
         clearInterval(interval)
         return previous
       })
-    }, 300)
+    }, 800)
 
     return () => clearInterval(interval)
   }, [])
@@ -47,22 +58,28 @@ export function EmailSendingAnimation() {
                 <Mailbox
                   className={`h-7 w-7 transition-colors ${
                     index < Math.floor(sentCount / 2.5) ? "text-primary" : "text-muted-foreground"
-                  }`}
+                  } ${bouncingMailboxes.includes(index) ? "animate-mailbox-bounce" : ""}`}
                 />
               </div>
             ))}
           </div>
 
           <div className="absolute inset-0 overflow-hidden">
-            {flyingEmails.map((emailId) => (
-              <div
-                key={emailId}
-                className="absolute left-20 top-1/2 -translate-y-1/2"
-                style={{ animation: "flyToMailbox 1.2s ease-in-out forwards" }}
-              >
-                <Mail className="h-6 w-6 text-primary" />
-              </div>
-            ))}
+            {flyingEmails.map((email) => {
+              const verticalOffset = (email.mailboxIndex - 1.5) * 60 // Offset for each mailbox
+              return (
+                <div
+                  key={email.id}
+                  className="absolute left-20 top-1/2"
+                  style={{
+                    animation: "flyToMailbox 1.2s ease-in-out forwards",
+                    "--vertical-offset": `${verticalOffset}px`,
+                  } as React.CSSProperties & { "--vertical-offset": string }}
+                >
+                  <Mail className="h-6 w-6 text-primary" />
+                </div>
+              )
+            })}
           </div>
         </div>
 
@@ -91,14 +108,14 @@ export function EmailSendingAnimation() {
       <style>{`
         @keyframes flyToMailbox {
           0% {
-            transform: translateX(0) translateY(-50%) scale(1);
+            transform: translateX(0) translateY(calc(-50% + 0px)) scale(1);
             opacity: 1;
           }
           70% {
             opacity: 1;
           }
           100% {
-            transform: translateX(calc(100vw - 280px)) translateY(-50%) scale(0.5);
+            transform: translateX(calc(100vw - 280px)) translateY(calc(-50% + var(--vertical-offset))) scale(0.5);
             opacity: 0;
           }
         }
@@ -106,17 +123,30 @@ export function EmailSendingAnimation() {
         @media (min-width: 768px) {
           @keyframes flyToMailbox {
             0% {
-              transform: translateX(0) translateY(-50%) scale(1);
+              transform: translateX(0) translateY(calc(-50% + 0px)) scale(1);
               opacity: 1;
             }
             70% {
               opacity: 1;
             }
             100% {
-              transform: translateX(520px) translateY(-50%) scale(0.5);
+              transform: translateX(520px) translateY(calc(-50% + var(--vertical-offset))) scale(0.5);
               opacity: 0;
             }
           }
+        }
+
+        @keyframes mailbox-bounce {
+          0%, 100% {
+            transform: scale(1);
+          }
+          50% {
+            transform: scale(1.3);
+          }
+        }
+
+        .animate-mailbox-bounce {
+          animation: mailbox-bounce 0.4s ease-in-out;
         }
       `}</style>
     </div>

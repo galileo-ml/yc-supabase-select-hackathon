@@ -45,38 +45,30 @@ export function EmailGenerationAnimation() {
     return () => clearInterval(interval)
   }, [currentEmail])
 
+  // Split text into subject and body
+  const parts = text.split("\n\n")
+  const subject = parts[0] || ""
+  const body = parts.slice(1).join("\n\n")
+
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
       <div className="w-full max-w-2xl space-y-6">
-        <div className="text-center">
-          <div className="mb-4 flex items-center justify-center gap-2">
-            <Sparkles className="h-5 w-5 animate-pulse text-primary" />
-            <h2 className="font-sans text-xl font-semibold text-foreground">Generating Phishing Emails</h2>
-          </div>
-          <p className="text-sm text-muted-foreground">Creating realistic phishing scenarios using AI...</p>
-        </div>
-
         <Card className="relative overflow-hidden border-border bg-card p-6">
           <div className="mb-4 flex items-center gap-3 border-b border-border pb-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10">
               <Mail className="h-5 w-5 text-primary" />
             </div>
             <div className="flex-1">
-              <div className="h-2 w-32 animate-pulse rounded bg-muted" />
+              <div className="text-sm font-medium text-foreground">
+                {subject}
+                {subject && !body && <span className="ml-1 inline-block h-4 w-2 animate-pulse bg-primary" />}
+              </div>
             </div>
           </div>
 
           <div className="font-mono text-sm text-foreground">
-            <pre className="whitespace-pre-wrap">{text}</pre>
-            <span className="inline-block h-4 w-2 animate-pulse bg-primary" />
-          </div>
-
-          {/* Envelope animation overlay */}
-          <div className="absolute bottom-4 right-4 opacity-20">
-            <svg width="80" height="60" viewBox="0 0 80 60" fill="none" className="animate-pulse">
-              <rect x="5" y="10" width="70" height="45" stroke="currentColor" strokeWidth="2" />
-              <path d="M5 10 L40 35 L75 10" stroke="currentColor" strokeWidth="2" />
-            </svg>
+            <pre className="whitespace-pre-wrap">{body}</pre>
+            {body && <span className="inline-block h-4 w-2 animate-pulse bg-primary" />}
           </div>
         </Card>
 

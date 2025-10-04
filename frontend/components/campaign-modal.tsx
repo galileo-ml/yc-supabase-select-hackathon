@@ -18,15 +18,16 @@ interface CampaignModalProps {
 }
 
 const ORGANIZATIONS = [
-  { value: "engineering", label: "Engineering" },
-  { value: "sales", label: "Sales" },
-  { value: "marketing", label: "Marketing" },
-  { value: "hr", label: "Human Resources" },
-  { value: "finance", label: "Finance" },
-  { value: "operations", label: "Operations" },
+  { value: "all", label: "All" },
+  { value: "resend", label: "Resend" },
+  { value: "supabase", label: "Supabase" },
+  { value: "figma", label: "Figma" },
+  { value: "snapchat", label: "Snapchat" },
+  { value: "datadog", label: "Datadog" },
 ]
 
 const BUSINESS_FUNCTIONS = [
+  { value: "all", label: "All" },
   { value: "cx", label: "Customer Experience" },
   { value: "product", label: "Product" },
   { value: "design", label: "Design" },

@@ -6,6 +6,7 @@ import Image from "next/image"
 
 import type { IconKey } from "@/lib/icons"
 import { iconLibrary } from "@/lib/icons"
+import { TypingAnimation } from "@/components/typing-animation"
 import file1 from "@/assets/file1.png"
 import file2 from "@/assets/file2.png"
 import file3 from "@/assets/file3.png"
@@ -64,7 +65,13 @@ export function DatabaseSearchingAnimation() {
   }
 
   return (
-    <div className="flex w-full max-w-6xl items-center gap-8 p-8 lg:p-16">
+    <div className="space-y-6 p-8 lg:p-16">
+      <TypingAnimation
+        text="Searching database for relevant docs..."
+        speed={50}
+        className="text-center text-lg font-medium text-foreground"
+      />
+      <div className="flex w-full max-w-6xl items-center gap-8 mx-auto">
       <div className="flex shrink-0 flex-col items-center gap-3">
         <div className="flex h-32 w-32 items-center justify-center rounded-xl border-2 border-border/40 bg-card query-border-animation">
           <div className="flex flex-col items-center gap-2">
@@ -236,6 +243,7 @@ export function DatabaseSearchingAnimation() {
           100% { transform: scale(1); }
         }
       `}</style>
+      </div>
     </div>
   )
 }

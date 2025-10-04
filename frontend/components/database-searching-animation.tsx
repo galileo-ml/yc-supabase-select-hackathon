@@ -157,6 +157,8 @@ export function DatabaseSearchingAnimation() {
         ))}
       </div>
 
+      </div>
+
       <style>{`
         .query-border-animation {
           animation: queryBorderPulse 2.1s ease-in-out infinite;
@@ -243,7 +245,6 @@ export function DatabaseSearchingAnimation() {
           100% { transform: scale(1); }
         }
       `}</style>
-      </div>
     </div>
   )
 }

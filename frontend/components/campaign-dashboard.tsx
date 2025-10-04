@@ -4,7 +4,9 @@ import { useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { EmailDetailModal } from "@/components/email-detail-modal"
+import { maskEmail } from "@/lib/utils"
 import { Mail, AlertCircle, CheckCircle2, Circle } from "lucide-react"
 
 export type Campaign = {
@@ -34,12 +36,13 @@ interface CampaignDashboardProps {
 export function CampaignDashboard({ campaigns }: CampaignDashboardProps) {
   const [selectedEmail, setSelectedEmail] = useState<Campaign["emails"][0] | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string>(campaigns[0]?.id || "")
 
   if (!campaigns?.length) {
     return null
   }
 
-  const latestCampaign = campaigns[0]
+  const selectedCampaign = campaigns.find((c) => c.id === selectedCampaignId) || campaigns[0]
 
   const handleRowClick = (email: Campaign["emails"][0]) => {
     setSelectedEmail(email)
@@ -47,23 +50,39 @@ export function CampaignDashboard({ campaigns }: CampaignDashboardProps) {
   }
 
   const stats = {
-    total: latestCampaign.emails.length,
-    sent: latestCampaign.emails.filter((e) => e.status === "sent").length,
-    delivered: latestCampaign.emails.filter((e) => e.status === "delivered").length,
-    clicked: latestCampaign.emails.filter((e) => e.status === "clicked").length,
+    total: selectedCampaign.emails.length,
+    sent: selectedCampaign.emails.filter((e) => e.status === "sent").length,
+    delivered: selectedCampaign.emails.filter((e) => e.status === "delivered").length,
+    clicked: selectedCampaign.emails.filter((e) => e.status === "clicked").length,
   }
 
   const clickRate = ((stats.clicked / stats.total) * 100).toFixed(1)
 
   return (
     <div className="space-y-6">
-      {/* Campaign Header */}
-      <div>
-        <h2 className="mb-1 font-sans text-2xl font-semibold text-foreground">{latestCampaign.name}</h2>
-        <p className="text-sm text-muted-foreground">
-          {latestCampaign.organization} • {latestCampaign.businessFunction} •{" "}
-          {latestCampaign.createdAt.toLocaleDateString()}
-        </p>
+      {/* Campaign Header with Filter */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="mb-1 font-sans text-2xl font-semibold text-foreground">{selectedCampaign.name}</h2>
+          <p className="text-sm text-muted-foreground">
+            {selectedCampaign.organization} • {selectedCampaign.businessFunction} •{" "}
+            {selectedCampaign.createdAt.toLocaleDateString()}
+          </p>
+        </div>
+        {campaigns.length > 1 && (
+          <Select value={selectedCampaignId} onValueChange={setSelectedCampaignId}>
+            <SelectTrigger className="w-[250px]">
+              <SelectValue placeholder="Select campaign" />
+            </SelectTrigger>
+            <SelectContent>
+              {campaigns.map((campaign) => (
+                <SelectItem key={campaign.id} value={campaign.id}>
+                  {campaign.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {/* Stats Cards */}
@@ -126,7 +145,7 @@ export function CampaignDashboard({ campaigns }: CampaignDashboardProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {latestCampaign.emails.map((email) => (
+            {selectedCampaign.emails.map((email) => (
               <TableRow
                 key={email.id}
                 className="border-border cursor-pointer transition-colors hover:bg-muted/50"
@@ -152,7 +171,7 @@ export function CampaignDashboard({ campaigns }: CampaignDashboardProps) {
                     </Badge>
                   )}
                 </TableCell>
-                <TableCell className="font-mono text-sm text-foreground">{email.recipient}</TableCell>
+                <TableCell className="font-mono text-sm text-foreground">{maskEmail(email.recipient)}</TableCell>
                 <TableCell className="text-foreground">{email.subject}</TableCell>
                 <TableCell className="text-muted-foreground">{email.sentAt.toLocaleTimeString()}</TableCell>
               </TableRow>

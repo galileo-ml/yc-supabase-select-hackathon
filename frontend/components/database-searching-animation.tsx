@@ -6,6 +6,7 @@ import Image from "next/image"
 
 import type { IconKey } from "@/lib/icons"
 import { iconLibrary } from "@/lib/icons"
+import { TypingAnimation } from "@/components/typing-animation"
 import file1 from "@/assets/file1.png"
 import file2 from "@/assets/file2.png"
 import file3 from "@/assets/file3.png"
@@ -28,21 +29,21 @@ const FILE_PATHS: PathConfig[] = [
     id: "path-top",
     // `M` sets the launch point near the right stack, the two `C` control pairs bend the travel,
     // and the final coordinates drop the file onto the query destination on the left.
-    path: "M 840,103 L 60,150",
+    path: "M 560,103 L 20,150",
     icon: "database",
     delay: 0,
   },
   {
     id: "path-middle",
     // Middle curve stays flatter by keeping control points aligned horizontally with the query.
-    path: "M 840,170 L 60,170",
+    path: "M 560,170 L 20,170",
     icon: "database",
     delay: 0.25,
   },
   {
     id: "path-bottom",
     // Lower path begins beneath the target and arcs upward as it approaches the query point.
-    path: "M 840,270 L 60,190",
+    path: "M 560,270 L 20,190",
     icon: "database",
     delay: 0.5,
   },
@@ -64,7 +65,13 @@ export function DatabaseSearchingAnimation() {
   }
 
   return (
-    <div className="flex w-full max-w-6xl items-center gap-8 p-8 lg:p-16">
+    <div className="space-y-6 p-8 lg:p-16">
+      <TypingAnimation
+        text="Searching database for relevant docs..."
+        speed={50}
+        className="text-center text-lg font-medium text-foreground"
+      />
+      <div className="flex w-full max-w-6xl items-center gap-8 mx-auto">
       <div className="flex shrink-0 flex-col items-center gap-3">
         <div className="flex h-32 w-32 items-center justify-center rounded-xl border-2 border-border/40 bg-card query-border-animation">
           <div className="flex flex-col items-center gap-2">
@@ -148,6 +155,8 @@ export function DatabaseSearchingAnimation() {
             <DatabaseIcon className="h-9 w-9" />
           </div>
         ))}
+      </div>
+
       </div>
 
       <style>{`

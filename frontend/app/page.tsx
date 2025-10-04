@@ -6,8 +6,10 @@ import { DatabaseSearchingAnimation } from "@/components/database-searching-anim
 import { EmailGenerationAnimation } from "@/components/email-generation-animation"
 import { EmailSendingAnimation } from "@/components/email-sending-animation"
 import { CampaignDashboard } from "@/components/campaign-dashboard"
-import { Button } from "@/components/ui/button"
-import { Mail } from "lucide-react"
+
+const SEARCH_DURATION_MS = 3000
+const GENERATION_DURATION_MS = 7000
+const SENDING_DURATION_MS = 8000
 
 type Campaign = {
   id: string
@@ -30,10 +32,9 @@ type Campaign = {
 }
 
 export default function PhishingTrainerPage() {
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(true)
   const [currentStep, setCurrentStep] = useState<"idle" | "searching" | "generating" | "sending" | "complete">("idle")
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
-  const [activeTab, setActiveTab] = useState<"searching" | "generating" | "sending">("searching")
 
   const handleCreateCampaign = (data: {
     name: string
@@ -44,7 +45,7 @@ export default function PhishingTrainerPage() {
     setIsModalOpen(false)
     setCurrentStep("searching")
 
-    // Simulate database searching (3 seconds)
+    // Simulate database searching phase
     setTimeout(() => {
       setCurrentStep("generating")
 
@@ -121,9 +122,9 @@ export default function PhishingTrainerPage() {
           setTimeout(() => {
             setCurrentStep("idle")
           }, 2000)
-        }, 8000)
-      }, 7000)
-    }, 3000)
+        }, SENDING_DURATION_MS)
+      }, GENERATION_DURATION_MS)
+    }, SEARCH_DURATION_MS)
   }
 
   return (
@@ -149,60 +150,6 @@ export default function PhishingTrainerPage() {
       <div className="relative z-10 min-h-screen">
         {/* Main Content */}
         <main className="container mx-auto px-6 py-12">
-          {currentStep === "idle" && campaigns.length === 0 && (
-            <div className="space-y-6">
-              {/* Tab Navigation */}
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-semibold text-foreground">Animation Preview</h2>
-                  <Button onClick={() => setIsModalOpen(true)} size="sm" variant="outline" className="gap-2">
-                    <Mail className="h-4 w-4" />
-                    Test Full Flow
-                  </Button>
-                </div>
-                <div className="flex gap-2 border-b border-border">
-                  <button
-                    onClick={() => setActiveTab("searching")}
-                    className={`px-4 py-2 text-sm font-medium transition-colors ${
-                      activeTab === "searching"
-                        ? "border-b-2 border-primary text-primary"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    Database Searching
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("generating")}
-                    className={`px-4 py-2 text-sm font-medium transition-colors ${
-                      activeTab === "generating"
-                        ? "border-b-2 border-primary text-primary"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    Email Generation
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("sending")}
-                    className={`px-4 py-2 text-sm font-medium transition-colors ${
-                      activeTab === "sending"
-                        ? "border-b-2 border-primary text-primary"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    Email Sending
-                  </button>
-                </div>
-              </div>
-
-              {/* Animation Display Area */}
-              <div className="rounded-lg border border-border bg-card">
-                {activeTab === "searching" && <DatabaseSearchingAnimation />}
-                {activeTab === "generating" && <EmailGenerationAnimation />}
-                {activeTab === "sending" && <EmailSendingAnimation />}
-              </div>
-            </div>
-          )}
-
           {currentStep === "searching" && (
             <div className="mx-auto w-[70%] rounded-lg border border-border bg-card">
               <DatabaseSearchingAnimation />

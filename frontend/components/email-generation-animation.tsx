@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
+import { TypingAnimation } from "@/components/typing-animation"
 import { Mail } from "lucide-react"
 
 const EMAIL_TEMPLATES = [
@@ -51,7 +52,12 @@ export function EmailGenerationAnimation() {
   const body = parts.slice(1).join("\n\n")
 
   return (
-    <div className="flex min-h-[60vh] items-center justify-center">
+    <div className="flex min-h-[60vh] flex-col items-center justify-center space-y-6 p-8">
+      <TypingAnimation
+        text="Generating tailored emails to recipients..."
+        speed={50}
+        className="text-center text-lg font-medium text-foreground"
+      />
       <div className="w-full max-w-2xl space-y-6">
         <Card className="relative overflow-hidden border-border bg-card p-6">
           <div className="mb-4 flex items-center gap-3 border-b border-border pb-4">

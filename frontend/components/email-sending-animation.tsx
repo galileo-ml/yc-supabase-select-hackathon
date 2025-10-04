@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from "react"
 import { useEffect, useState } from "react"
+import { TypingAnimation } from "@/components/typing-animation"
 import { Laptop, Mail, Mailbox } from "lucide-react"
 
 const DESTINATION_COUNT = 3
@@ -89,7 +90,12 @@ export function EmailSendingAnimation() {
   }
 
   return (
-    <div className="flex min-h-[60vh] items-center justify-center p-6">
+    <div className="flex min-h-[60vh] flex-col items-center justify-center space-y-6 p-6">
+      <TypingAnimation
+        text="Sending emails to employees..."
+        speed={50}
+        className="text-center text-lg font-medium text-foreground"
+      />
       <div className="w-[80%] space-y-8">
         <div className="relative h-64">
           <div className="absolute left-0 top-1/2 -translate-y-1/2">

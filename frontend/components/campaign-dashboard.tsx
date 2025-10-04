@@ -3,13 +3,13 @@
 import { useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { EmailDetailModal } from "@/components/email-detail-modal"
 import { maskEmail } from "@/lib/utils"
 import { Mail, AlertCircle, CheckCircle2, Circle, Eye, Ban, AlertTriangle, Clock, Send, RefreshCw, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import type { Campaign, EmailStatus } from "@/types/campaign"
+import { Badge } from "@/components/ui/badge"
+import type { Campaign } from "@/types/campaign"
 
 interface CampaignDashboardProps {
   campaigns: Campaign[]
@@ -65,6 +65,69 @@ export function CampaignDashboard({ campaigns, onRefresh, onCreateNewCampaign }:
 
   const clickRate = stats.total > 0 ? ((stats.clicked / stats.total) * 100).toFixed(1) : "0.0"
   const openRate = stats.total > 0 ? ((stats.opened / stats.total) * 100).toFixed(1) : "0.0"
+
+  const renderStatusBadge = (status: Campaign["emails"][0]["status"]) => {
+    switch (status) {
+      case "clicked":
+        return (
+          <Badge variant="destructive" className="gap-1">
+            <AlertCircle className="h-3 w-3" />
+            Clicked
+          </Badge>
+        )
+      case "opened":
+        return (
+          <Badge variant="outline" className="gap-1 border-warning text-warning">
+            <Eye className="h-3 w-3" />
+            Opened
+          </Badge>
+        )
+      case "delivered":
+        return (
+          <Badge variant="outline" className="gap-1 border-success text-success">
+            <CheckCircle2 className="h-3 w-3" />
+            Delivered
+          </Badge>
+        )
+      case "sent":
+        return (
+          <Badge variant="outline" className="gap-1 border-muted-foreground text-muted-foreground">
+            <Circle className="h-3 w-3" />
+            Sent
+          </Badge>
+        )
+      case "sending":
+        return (
+          <Badge variant="outline" className="gap-1 border-primary text-primary">
+            <Send className="h-3 w-3" />
+            Sending
+          </Badge>
+        )
+      case "queued":
+        return (
+          <Badge variant="outline" className="gap-1 border-muted-foreground text-muted-foreground">
+            <Clock className="h-3 w-3" />
+            Queued
+          </Badge>
+        )
+      case "bounced":
+        return (
+          <Badge variant="outline" className="gap-1 border-destructive text-destructive">
+            <Ban className="h-3 w-3" />
+            Bounced
+          </Badge>
+        )
+      case "complained":
+        return (
+          <Badge variant="outline" className="gap-1 border-destructive text-destructive">
+            <AlertTriangle className="h-3 w-3" />
+            Complained
+          </Badge>
+        )
+      default:
+        return null
+    }
+  }
 
   return (
     <div className="space-y-6">

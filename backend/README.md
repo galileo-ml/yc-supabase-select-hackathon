@@ -1,35 +1,49 @@
 # Backend Service
 
 ## Prerequisites
-- Python 3.11+ available on PATH (via Conda, pyenv, or system Python)
-- [`uv`](https://github.com/astral-sh/uv#installation) installed for dependency and virtualenv management
+- Python 3.11+ available on PATH (Conda, pyenv, or system install)
+- [`uv`](https://github.com/astral-sh/uv#installation) for dependency management
+- Resend API key (`RESEND_API_KEY`)
+- Supabase Postgres URLs (`SUPABASE_URL_IPV6`, `SUPABASE_URL_IPV4`) containing service credentials
 
 ## Setup
 ```bash
 # from the repository root
 cd backend
-
-# create or refresh the project virtual environment
-uv venv
-
-# install runtime and dev dependencies
-uv sync
+uv venv        # create or refresh the project virtual environment
+uv sync        # install runtime and dev dependencies
 ```
+Activate any Conda environment first if you rely on Conda for the base interpreter; `uv` will still manage the project-scoped `.venv` inside `backend/`.
 
-If you prefer an existing Conda environment, activate it first and allow `uv` to manage the project-level `.venv` inside `backend/`.
+## Environment
+Export the credentials before running the server:
+```bash
+export RESEND_API_KEY="your_resend_api_key"
+export SUPABASE_URL_IPV6="postgresql://user:password@ipv6-host:5432/postgres"
+export SUPABASE_URL_IPV4="postgresql://user:password@ipv4-host:5432/postgres"
+```
+On Windows PowerShell:
+```powershell
+setx RESEND_API_KEY "your_resend_api_key"
+setx SUPABASE_URL_IPV6 "postgresql://user:password@ipv6-host:5432/postgres"
+setx SUPABASE_URL_IPV4 "postgresql://user:password@ipv4-host:5432/postgres"
+```
+You can also load them from a local `.env` file with `set -o allexport && source .env && set +o allexport`.
 
 ## Running the API
 ```bash
-# activate the virtual environment automatically and start FastAPI with reload
 uv run uvicorn app.main:app --reload
 ```
-The server listens on `http://127.0.0.1:8000/`. The root route (`/`) returns a JSON health payload.
+- `GET /` — returns a JSON health payload.
+- `POST /test_email` — queues a Resend test email to `nickcar712@gmail.com` and returns `500` if `RESEND_API_KEY` is missing.
+
+On startup the app tries the Supabase IPv6 connection first, falling back to IPv4 if needed. If `public.employees` is missing it is created, and whenever the table is empty the seed data (`email`, `name`, `company`, `context`) is inserted. Existing rows are left untouched.
 
 ## Testing
 ```bash
 uv run pytest
 ```
-Add tests under `app/tests/` to keep coverage alongside the code.
+Add tests under `app/tests/` to keep coverage alongside the codebase.
 
 ## Project Status
-This service currently exposes only the default health route. Expand within the `app/` package and update `pyproject.toml` when adding new modules.
+The service currently exposes a health endpoint, the Resend test-email route, and Supabase seeding logic. Extend within the `app/` package and update `pyproject.toml` when adding new modules.

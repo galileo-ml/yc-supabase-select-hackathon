@@ -412,6 +412,37 @@ def _serialize_campaign_email(record: CampaignEmail) -> dict[str, Any]:
     }
 
 
+def _serialize_campaign_summary(
+    campaign: Campaign, emails: list[CampaignEmail]
+) -> dict[str, Any]:
+    def _iso(value: datetime | None) -> str | None:
+        return value.isoformat() if value else None
+
+    total_emails = len(emails)
+    sent_emails = sum(1 for email in emails if email.sent_at is not None)
+
+    last_activity = None
+    for email in emails:
+        for candidate in (
+            email.last_event_at,
+            email.sent_at,
+            email.created_at,
+        ):
+            if candidate and (last_activity is None or candidate > last_activity):
+                last_activity = candidate
+
+    return {
+        "id": campaign.id,
+        "num_users": campaign.num_users,
+        "created_at": _iso(campaign.created_at),
+        "emails": {
+            "total": total_emails,
+            "sent": sent_emails,
+        },
+        "last_activity_at": _iso(last_activity),
+    }
+
+
 def _compose_email_content(
     api_key: str, employee: Employee, campaign: Campaign | None
 ) -> tuple[str, str, str]:
@@ -658,6 +689,33 @@ async def create_campaign(
                 background_tasks.add_task(_send_campaign_email_task, email_id)
 
     return {"campaign": campaign_payload, "members": members_payload}
+
+
+def _list_campaign_summaries() -> list[dict[str, Any]]:
+    engine = get_engine()
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Database connection is not configured")
+
+    with Session(engine, expire_on_commit=False) as session:
+        campaigns = session.exec(select(Campaign).order_by(Campaign.id)).all()
+        if not campaigns:
+            return []
+
+        emails = session.exec(select(CampaignEmail)).all()
+        emails_by_campaign: dict[int, list[CampaignEmail]] = {}
+        for record in emails:
+            emails_by_campaign.setdefault(record.campaign_id, []).append(record)
+
+        return [
+            _serialize_campaign_summary(campaign, emails_by_campaign.get(campaign.id, []))
+            for campaign in campaigns
+        ]
+
+
+@app.get("/campaigns")
+async def list_campaigns():
+    campaigns = await run_in_threadpool(_list_campaign_summaries)
+    return {"campaigns": campaigns}
 
 
 def _load_campaign_snapshot(

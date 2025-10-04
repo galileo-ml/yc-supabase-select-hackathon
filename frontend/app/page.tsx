@@ -3,8 +3,11 @@
 import { useState } from "react"
 import { CampaignModal } from "@/components/campaign-modal"
 import { DatabaseSearchingAnimation } from "@/components/database-searching-animation"
+import { EmailGenerationAnimation } from "@/components/email-generation-animation"
+import { EmailSendingAnimation } from "@/components/email-sending-animation"
+import { CampaignDashboard } from "@/components/campaign-dashboard"
 
-const SEARCH_DURATION_MS = 50000
+const SEARCH_DURATION_MS = 3000
 const GENERATION_DURATION_MS = 7000
 const SENDING_DURATION_MS = 8000
 
@@ -30,7 +33,7 @@ type Campaign = {
 
 export default function PhishingTrainerPage() {
   const [isModalOpen, setIsModalOpen] = useState(true)
-  const [, setCurrentStep] = useState<"idle" | "searching" | "generating" | "sending" | "complete">("idle")
+  const [currentStep, setCurrentStep] = useState<"idle" | "searching" | "generating" | "sending" | "complete">("idle")
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
 
   const handleCreateCampaign = (data: {
@@ -147,9 +150,24 @@ export default function PhishingTrainerPage() {
       <div className="relative z-10 min-h-screen">
         {/* Main Content */}
         <main className="container mx-auto px-6 py-12">
-          <div className="mx-auto w-[70%] rounded-lg border border-border bg-card">
-            <DatabaseSearchingAnimation />
-          </div>
+          {currentStep === "searching" && (
+            <div className="mx-auto w-[70%] rounded-lg border border-border bg-card">
+              <DatabaseSearchingAnimation />
+            </div>
+          )}
+          {currentStep === "generating" && (
+            <div className="mx-auto w-[70%] rounded-lg border border-border bg-card">
+              <EmailGenerationAnimation />
+            </div>
+          )}
+          {currentStep === "sending" && (
+            <div className="mx-auto w-[70%] rounded-lg border border-border bg-card">
+              <EmailSendingAnimation />
+            </div>
+          )}
+          {(currentStep === "idle" || currentStep === "complete") && campaigns.length > 0 && (
+            <CampaignDashboard campaigns={campaigns} />
+          )}
         </main>
 
         <CampaignModal open={isModalOpen} onOpenChange={setIsModalOpen} onSubmit={handleCreateCampaign} />

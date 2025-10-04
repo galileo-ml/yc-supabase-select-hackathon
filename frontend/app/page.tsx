@@ -1,103 +1,148 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
+import { useState } from "react"
+import { CampaignModal } from "@/components/campaign-modal"
+import { DatabaseSearchingAnimation } from "@/components/database-searching-animation"
+import { EmailGenerationAnimation } from "@/components/email-generation-animation"
+import { EmailSendingAnimation } from "@/components/email-sending-animation"
+import { CampaignDashboard } from "@/components/campaign-dashboard"
+import { Button } from "@/components/ui/button"
+import { Mail } from "lucide-react"
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+
+type Campaign = {
+  id: string
+  name: string
+  organization: string
+  businessFunction: string
+  createdAt: Date
+  emails: Array<{
+    id: string
+    recipient: string
+    subject: string
+    status: "sent" | "opened" | "clicked"
+    sentAt: Date
+  }>
+}
+
+export default function PhishingTrainerPage() {
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [currentStep, setCurrentStep] = useState<"idle" | "searching" | "generating" | "sending" | "complete">("idle")
+  const [campaigns, setCampaigns] = useState<Campaign[]>([])
+  const [activeTab, setActiveTab] = useState<"searching" | "generating" | "sending">("searching")
+
+  const handleCreateCampaign = (data: {
+    name: string
+    organization: string
+    businessFunction: string
+    targetCount: number
+  }) => {
+    setIsModalOpen(false)
+    setCurrentStep("searching")
+
+    // Simulate database searching (3 seconds)
+    setTimeout(() => {
+      setCurrentStep("generating")
+
+      // Simulate email generation (7 seconds - longest phase)
+      setTimeout(() => {
+        setCurrentStep("sending")
+
+        // Simulate email sending (3 seconds)
+        setTimeout(() => {
+          const newCampaign: Campaign = {
+            id: Math.random().toString(36).substr(2, 9),
+            name: data.name,
+            organization: data.organization,
+            businessFunction: data.businessFunction,
+            createdAt: new Date(),
+            emails: Array.from({ length: data.targetCount }, (_, i) => ({
+              id: Math.random().toString(36).substr(2, 9),
+              recipient: `employee${i + 1}@company.com`,
+              subject: `Important: Action Required`,
+              status: Math.random() > 0.7 ? "clicked" : Math.random() > 0.5 ? "opened" : "sent",
+              sentAt: new Date(),
+            })),
+          }
+
+          setCampaigns([newCampaign, ...campaigns])
+          setCurrentStep("complete")
+
+          setTimeout(() => {
+            setCurrentStep("idle")
+          }, 2000)
+        }, 3000)
+      }, 7000)
+    }, 3000)
+  }
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="min-h-screen bg-background">
+      {/* Main Content */}
+      <main className="container mx-auto px-6 py-12">
+        {currentStep === "idle" && campaigns.length === 0 && (
+          <div className="space-y-6">
+            {/* Tab Navigation */}
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-foreground">Animation Preview</h2>
+                <Button onClick={() => setIsModalOpen(true)} size="sm" variant="outline" className="gap-2">
+                  <Mail className="h-4 w-4" />
+                  Test Full Flow
+                </Button>
+              </div>
+              <div className="flex gap-2 border-b border-border">
+                <button
+                  onClick={() => setActiveTab("searching")}
+                  className={`px-4 py-2 text-sm font-medium transition-colors ${
+                    activeTab === "searching"
+                      ? "border-b-2 border-primary text-primary"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Database Searching
+                </button>
+                <button
+                  onClick={() => setActiveTab("generating")}
+                  className={`px-4 py-2 text-sm font-medium transition-colors ${
+                    activeTab === "generating"
+                      ? "border-b-2 border-primary text-primary"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Email Generation
+                </button>
+                <button
+                  onClick={() => setActiveTab("sending")}
+                  className={`px-4 py-2 text-sm font-medium transition-colors ${
+                    activeTab === "sending"
+                      ? "border-b-2 border-primary text-primary"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Email Sending
+                </button>
+              </div>
+            </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
+            {/* Animation Display Area */}
+            <div className="rounded-lg border border-border bg-card">
+              {activeTab === "searching" && <DatabaseSearchingAnimation />}
+              {activeTab === "generating" && <EmailGenerationAnimation />}
+              {activeTab === "sending" && <EmailSendingAnimation />}
+            </div>
+          </div>
+        )}
+
+        {currentStep === "searching" && <DatabaseSearchingAnimation />}
+        {currentStep === "generating" && <EmailGenerationAnimation />}
+        {currentStep === "sending" && <EmailSendingAnimation />}
+        {(currentStep === "idle" || currentStep === "complete") && campaigns.length > 0 && (
+          <CampaignDashboard campaigns={campaigns} />
+        )}
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+      <CampaignModal open={isModalOpen} onOpenChange={setIsModalOpen} onSubmit={handleCreateCampaign} />
     </div>
-  );
+  )
 }

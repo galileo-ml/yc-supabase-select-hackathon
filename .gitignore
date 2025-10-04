@@ -33,3 +33,34 @@ pnpm-debug.log*
 
 # typescript
 *.tsbuildinfo
+
+# General
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*.py.class
+.env
+.venv/
+.mypy_cache/
+.pytest_cache/
+
+# Node / Build
+node_modules/
+.next/
+dist/
+.build/
+out/
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs & Coverage
+*.log
+coverage/
+

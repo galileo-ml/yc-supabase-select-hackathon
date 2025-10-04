@@ -2,9 +2,9 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Building2, Target, Users, X } from "lucide-react"
+import { Building2, Target, Users } from "lucide-react"
 
 interface CampaignModalProps {
   open: boolean
@@ -46,6 +46,13 @@ export function CampaignModal({ open, onOpenChange, onSubmit, onNavigateToDashbo
   const [businessFunction, setBusinessFunction] = useState("")
   const [targetCount, setTargetCount] = useState(DEFAULT_TARGET_COUNT)
 
+  const handleClose = useCallback(() => {
+    if (hasCampaigns && onNavigateToDashboard) {
+      onNavigateToDashboard()
+    }
+    onOpenChange(false)
+  }, [hasCampaigns, onNavigateToDashboard, onOpenChange])
+
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape" && open) {
@@ -55,7 +62,7 @@ export function CampaignModal({ open, onOpenChange, onSubmit, onNavigateToDashbo
 
     document.addEventListener("keydown", handleEscape)
     return () => document.removeEventListener("keydown", handleEscape)
-  }, [open])
+  }, [open, handleClose])
 
   if (!open) {
     return null
@@ -74,13 +81,6 @@ export function CampaignModal({ open, onOpenChange, onSubmit, onNavigateToDashbo
     setOrganization("")
     setBusinessFunction("")
     setTargetCount(DEFAULT_TARGET_COUNT)
-    onOpenChange(false)
-  }
-
-  const handleClose = () => {
-    if (hasCampaigns && onNavigateToDashboard) {
-      onNavigateToDashboard()
-    }
     onOpenChange(false)
   }
 

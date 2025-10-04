@@ -9,26 +9,7 @@ import { EmailDetailModal } from "@/components/email-detail-modal"
 import { maskEmail } from "@/lib/utils"
 import { Mail, AlertCircle, CheckCircle2, Circle, Eye, Ban, AlertTriangle, Clock, Send, RefreshCw, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
-
-export type Campaign = {
-  id: string
-  name: string
-  organization: string
-  businessFunction: string
-  createdAt: Date
-  emails: Array<{
-    id: string
-    recipient: string
-    subject: string
-    content: string
-    status: "sent" | "delivered" | "clicked"
-    sentAt: Date
-    statusHistory: Array<{
-      status: "sent" | "delivered" | "clicked"
-      timestamp: Date
-    }>
-  }>
-}
+import type { Campaign, EmailStatus } from "@/types/campaign"
 
 interface CampaignDashboardProps {
   campaigns: Campaign[]
@@ -72,18 +53,12 @@ export function CampaignDashboard({ campaigns, onRefresh, onCreateNewCampaign }:
 
   const stats = {
     total: selectedCampaign.emails.length,
-    queued: selectedCampaign.emails.filter((e) => e.status === "queued").length,
-    sending: selectedCampaign.emails.filter((e) => e.status === "sending").length,
     sent: selectedCampaign.emails.filter((e) => e.status === "sent").length,
     delivered: selectedCampaign.emails.filter((e) => e.status === "delivered").length,
-    opened: selectedCampaign.emails.filter((e) => e.status === "opened").length,
     clicked: selectedCampaign.emails.filter((e) => e.status === "clicked").length,
-    bounced: selectedCampaign.emails.filter((e) => e.status === "bounced").length,
-    complained: selectedCampaign.emails.filter((e) => e.status === "complained").length,
   }
 
   const clickRate = stats.total > 0 ? ((stats.clicked / stats.total) * 100).toFixed(1) : "0.0"
-  const openRate = stats.total > 0 ? ((stats.opened / stats.total) * 100).toFixed(1) : "0.0"
 
   return (
     <div className="space-y-6">

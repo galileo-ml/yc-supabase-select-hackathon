@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { CampaignModal } from "@/components/campaign-modal"
 import { DatabaseSearchingAnimation } from "@/components/database-searching-animation"
 import { EmailGenerationAnimation } from "@/components/email-generation-animation"

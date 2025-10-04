@@ -26,19 +26,23 @@ const VISUAL_PATHS = [
 const FILE_PATHS: PathConfig[] = [
   {
     id: "path-top",
-    path: "M 840,103 C 280,80 160,95 60,110",
+    // `M` sets the launch point near the right stack, the two `C` control pairs bend the travel,
+    // and the final coordinates drop the file onto the query destination on the left.
+    path: "M 840,103 L 60,150",
     icon: "database",
     delay: 0,
   },
   {
     id: "path-middle",
-    path: "M 360,110 C 260,110 160,110 60,110",
+    // Middle curve stays flatter by keeping control points aligned horizontally with the query.
+    path: "M 840,170 L 60,170",
     icon: "database",
     delay: 0.25,
   },
   {
     id: "path-bottom",
-    path: "M 360,160 C 280,140 160,125 60,110",
+    // Lower path begins beneath the target and arcs upward as it approaches the query point.
+    path: "M 840,270 L 60,190",
     icon: "database",
     delay: 0.5,
   },

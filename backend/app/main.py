@@ -14,6 +14,16 @@ from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+if not logging.getLogger().isEnabledFor(logging.INFO):
+    handler = logging.StreamHandler()
+    handler.setLevel(logging.INFO)
+    handler.setFormatter(
+        logging.Formatter("%(levelname)s %(name)s: %(message)s")
+    )
+    logger.addHandler(handler)
+    logger.propagate = False
 
 app = FastAPI()
 
@@ -196,7 +206,7 @@ def _create_campaign_record(num_users: int) -> tuple[Campaign, list[Employee]]:
     if engine is None:
         raise HTTPException(status_code=503, detail="Database connection is not configured")
 
-    with Session(engine) as session:
+    with Session(engine, expire_on_commit=False) as session:
         employees = session.exec(
             select(Employee).order_by(func.random()).limit(num_users)
         ).all()

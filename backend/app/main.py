@@ -208,9 +208,6 @@ _RESEND_WEBHOOK_EVENTS: list[str] = [
 ]
 
 
-_RESEND_WEBHOOK_SECRET_PLACEHOLDER = "replace-with-resend-webhook-secret"
-
-
 def _ensure_row_level_security(engine: Engine, table_names: Iterable[str]) -> None:
     tables = list(table_names)
     try:
@@ -323,7 +320,6 @@ def ensure_tables_and_seed() -> None:
 @app.on_event("startup")
 async def startup_tasks() -> None:
     await run_in_threadpool(ensure_tables_and_seed)
-    await run_in_threadpool(ensure_resend_webhook_registration)
 
 
 @app.get("/")
@@ -544,7 +540,7 @@ def _extract_recipient_addresses(data: Dict[str, Any]) -> list[str]:
 
 
 def _get_resend_webhook_secret() -> str:
-    return os.getenv("RESEND_WEBHOOK_SECRET", _RESEND_WEBHOOK_SECRET_PLACEHOLDER)
+    return os.getenv("RESEND_WEBHOOK_SECRET")
 
 
 def _decode_signature(signature: str) -> bytes | None:
@@ -562,7 +558,7 @@ def _decode_signature(signature: str) -> bytes | None:
 
 def _verify_resend_signature(raw_body: bytes, signature_header: str | None) -> bool:
     secret = _get_resend_webhook_secret()
-    if not secret or secret == _RESEND_WEBHOOK_SECRET_PLACEHOLDER:
+    if not secret:
         logger.warning(
             "Resend webhook secret placeholder in use; skipping signature verification"
         )
@@ -702,61 +698,6 @@ def _process_resend_event(event: ResendEvent) -> bool:
             email_record.status,
         )
         return True
-
-
-def ensure_resend_webhook_registration() -> None:
-    api_key = os.getenv("RESEND_API_KEY")
-    target_url = os.getenv("RESEND_WEBHOOK_URL")
-
-    if not api_key or not target_url:
-        logger.info("RESEND_WEBHOOK_URL not set; skipping automatic Resend webhook registration")
-        return
-
-    resend.api_key = api_key
-
-    namespace = getattr(resend, "Webhooks", None) or getattr(resend, "webhooks", None)
-    if namespace is None:
-        logger.warning(
-            "Resend SDK does not expose Webhooks namespace; manual registration required for %s",
-            target_url,
-        )
-        return
-
-    list_method = getattr(namespace, "list", None)
-    create_method = getattr(namespace, "create", None)
-
-    if not callable(create_method):
-        logger.warning(
-            "Resend SDK does not support Webhooks.create; unable to auto-register webhook"
-        )
-        return
-
-    if callable(list_method):
-        try:
-            existing_response = list_method()
-        except Exception as exc:  # pragma: no cover - external API protection
-            logger.warning("Unable to list existing Resend webhooks: %s", exc)
-        else:
-            for item in _iter_dicts(existing_response):
-                if item.get("url") == target_url:
-                    logger.info("Resend webhook already registered for %s", target_url)
-                    return
-
-    try:
-        create_method(
-            {
-                "url": target_url,
-                "events": _RESEND_WEBHOOK_EVENTS,
-            }
-        )
-    except Exception as exc:  # pragma: no cover - external API protection
-        logger.error(
-            "Failed to register Resend webhook for %s: %s", target_url, exc
-        )
-    else:
-        logger.info("Registered Resend webhook for %s", target_url)
-
-
 
 
 @app.get("/campaigns/{campaign_id}/status")

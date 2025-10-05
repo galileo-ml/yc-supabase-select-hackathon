@@ -38,7 +38,7 @@ const BUSINESS_FUNCTIONS = [
   { value: "legal", label: "Legal" },
 ]
 
-const DEFAULT_TARGET_COUNT = "10"
+const DEFAULT_TARGET_COUNT = "4"
 
 export function CampaignModal({ open, onOpenChange, onSubmit, onNavigateToDashboard, hasCampaigns }: CampaignModalProps) {
   const [name, setName] = useState("")
@@ -175,7 +175,7 @@ export function CampaignModal({ open, onOpenChange, onSubmit, onNavigateToDashbo
               id="campaign-targets"
               type="number"
               min={1}
-              max={100}
+              max={4}
               value={targetCount}
               onChange={(event) => setTargetCount(event.target.value)}
               required

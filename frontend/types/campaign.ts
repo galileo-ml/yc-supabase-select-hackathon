@@ -158,3 +158,15 @@ export function transformBackendCampaign(
     emails,
   }
 }
+
+// Convert backend campaign summary to frontend Campaign type (for list views)
+export function transformBackendCampaignSummary(summary: BackendCampaignSummary): Campaign {
+  return {
+    id: summary.id.toString(),
+    name: `Campaign ${summary.id}`,
+    organization: "Unknown",
+    businessFunction: "Unknown",
+    createdAt: summary.created_at ? new Date(summary.created_at) : new Date(),
+    emails: [], // Summary doesn't include full email details
+  }
+}

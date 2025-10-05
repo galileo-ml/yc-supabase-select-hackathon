@@ -164,7 +164,7 @@ export function CampaignDashboard({ campaigns, onRefresh, onCreateNewCampaign }:
               <SelectTrigger className="w-[250px]">
                 <SelectValue placeholder="Select campaign" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-card">
                 {campaigns.map((campaign) => (
                   <SelectItem key={campaign.id} value={campaign.id}>
                     {campaign.name}

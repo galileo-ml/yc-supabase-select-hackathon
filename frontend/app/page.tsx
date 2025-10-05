@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { CampaignModal } from "@/components/campaign-modal"
 import { DatabaseSearchingAnimation } from "@/components/database-searching-animation"
 import { EmailGenerationAnimation } from "@/components/email-generation-animation"
@@ -8,8 +8,8 @@ import { EmailSendingAnimation } from "@/components/email-sending-animation"
 import { CampaignDashboard } from "@/components/campaign-dashboard"
 import { Button } from "@/components/ui/button"
 import { LayoutDashboard } from "lucide-react"
-import type { Campaign, BackendCampaignResponse } from "@/types/campaign"
-import { transformBackendCampaign } from "@/types/campaign"
+import type { Campaign, BackendCampaignResponse, BackendCampaignsListResponse } from "@/types/campaign"
+import { transformBackendCampaign, transformBackendCampaignSummary } from "@/types/campaign"
 
 const SEARCH_DURATION_MS = 6000
 const GENERATION_DURATION_MS = 6000
@@ -19,6 +19,53 @@ export default function PhishingTrainerPage() {
   const [isModalOpen, setIsModalOpen] = useState(true)
   const [currentStep, setCurrentStep] = useState<"idle" | "searching" | "generating" | "sending" | "complete">("idle")
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
+
+  const fetchCampaigns = async () => {
+    try {
+      const response = await fetch("/api/campaigns")
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch campaigns")
+      }
+
+      const data: BackendCampaignsListResponse = await response.json()
+
+      // Fetch full details for each campaign
+      const campaignDetailsPromises = data.campaigns.map(async (summary) => {
+        try {
+          const detailResponse = await fetch(`/api/campaigns/${summary.id}/status`)
+
+          if (!detailResponse.ok) {
+            console.error(`Failed to fetch details for campaign ${summary.id}`)
+            return transformBackendCampaignSummary(summary)
+          }
+
+          const detailData: BackendCampaignResponse = await detailResponse.json()
+
+          // Transform with metadata (using placeholders since we don't store these in backend)
+          return transformBackendCampaign(detailData, {
+            name: `Campaign ${summary.id}`,
+            organization: "Unknown",
+            businessFunction: "Unknown",
+          })
+        } catch (error) {
+          console.error(`Error fetching campaign ${summary.id}:`, error)
+          return transformBackendCampaignSummary(summary)
+        }
+      })
+
+      const transformedCampaigns = await Promise.all(campaignDetailsPromises)
+      setCampaigns(transformedCampaigns)
+    } catch (error) {
+      console.error("Error fetching campaigns:", error)
+      // TODO: Show error toast/notification to user
+    }
+  }
+
+  // Load campaigns on page mount
+  useEffect(() => {
+    fetchCampaigns()
+  }, [])
 
   const handleRefreshCampaign = async (campaignId: string) => {
     try {
@@ -133,22 +180,6 @@ export default function PhishingTrainerPage() {
       />
 
       <div className="relative z-10 min-h-screen">
-        {/* Header with Dashboard Button */}
-        {campaigns.length > 0 && currentStep !== "idle" && currentStep !== "complete" && (
-          <div className="container mx-auto px-6 pt-6">
-            <div className="flex justify-end">
-              <Button
-                onClick={() => setCurrentStep("idle")}
-                variant="outline"
-                className="gap-2"
-              >
-                <LayoutDashboard className="h-4 w-4" />
-                View Dashboard
-              </Button>
-            </div>
-          </div>
-        )}
-
         {/* Main Content */}
         <main className="container mx-auto px-6 py-12">
           {currentStep === "searching" && (
@@ -179,7 +210,10 @@ export default function PhishingTrainerPage() {
           open={isModalOpen}
           onOpenChange={setIsModalOpen}
           onSubmit={handleCreateCampaign}
-          onNavigateToDashboard={() => setCurrentStep("idle")}
+          onNavigateToDashboard={async () => {
+            await fetchCampaigns()
+            setCurrentStep("idle")
+          }}
           hasCampaigns={campaigns.length > 0}
         />
       </div>

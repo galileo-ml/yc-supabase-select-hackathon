@@ -110,53 +110,59 @@ export default function PhishingTrainerPage() {
     setIsModalOpen(false)
     setCurrentStep("searching")
 
-    // Simulate database searching phase
-    setTimeout(() => {
-      setCurrentStep("generating")
+    // Start backend API call immediately
+    const apiCallPromise = fetch("/api/campaigns", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ num_users: data.targetCount }),
+    })
 
-      // Simulate email generation phase
+    // Animation timeline
+    const animationPromise = new Promise<void>((resolve) => {
       setTimeout(() => {
-        setCurrentStep("sending")
+        setCurrentStep("generating")
 
-        // Call backend API to create campaign
-        setTimeout(async () => {
-          try {
-            const response = await fetch("/api/campaigns", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ num_users: data.targetCount }),
-            })
+        setTimeout(() => {
+          setCurrentStep("sending")
 
-            if (!response.ok) {
-              throw new Error("Failed to create campaign")
-            }
+          setTimeout(() => {
+            resolve()
+          }, SENDING_DURATION_MS)
+        }, GENERATION_DURATION_MS)
+      }, SEARCH_DURATION_MS)
+    })
 
-            const backendData: BackendCampaignResponse = await response.json()
+    // Wait for both API call and animations to complete
+    try {
+      const [response] = await Promise.all([apiCallPromise, animationPromise])
 
-            // Transform backend response to frontend Campaign type
-            const newCampaign = transformBackendCampaign(backendData, {
-              name: data.name,
-              organization: data.organization,
-              businessFunction: data.businessFunction,
-            })
+      if (!response.ok) {
+        throw new Error("Failed to create campaign")
+      }
 
-            setCampaigns([newCampaign, ...campaigns])
-            setCurrentStep("complete")
+      const backendData: BackendCampaignResponse = await response.json()
 
-            setTimeout(() => {
-              setCurrentStep("idle")
-            }, 2000)
-          } catch (error) {
-            console.error("Error creating campaign:", error)
-            // Revert to idle state on error
-            setCurrentStep("idle")
-            // TODO: Show error toast/notification to user
-          }
-        }, SENDING_DURATION_MS)
-      }, GENERATION_DURATION_MS)
-    }, SEARCH_DURATION_MS)
+      // Transform backend response to frontend Campaign type
+      const newCampaign = transformBackendCampaign(backendData, {
+        name: data.name,
+        organization: data.organization,
+        businessFunction: data.businessFunction,
+      })
+
+      setCampaigns([newCampaign, ...campaigns])
+      setCurrentStep("complete")
+
+      setTimeout(() => {
+        setCurrentStep("idle")
+      }, 2000)
+    } catch (error) {
+      console.error("Error creating campaign:", error)
+      // Revert to idle state on error
+      setCurrentStep("idle")
+      // TODO: Show error toast/notification to user
+    }
   }
 
   return (

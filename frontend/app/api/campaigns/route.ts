@@ -37,7 +37,6 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { num_users } = body
-    console.log("backend url", BACKEND_URL)
     if (!num_users || num_users < 1) {
       return NextResponse.json(
         { error: "num_users must be a positive integer" },
